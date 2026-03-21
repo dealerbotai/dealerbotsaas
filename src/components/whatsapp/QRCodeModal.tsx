@@ -2,8 +2,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
-import { Loader2, QrCode, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Loader2, QrCode, CheckCircle2, WifiOff } from 'lucide-react';
+import { io } from 'socket.io-client';
 
 interface QRCodeModalProps {
   isOpen: boolean;
@@ -18,29 +19,41 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect }: QRCodeModalPr
   const [loading, setLoading] = useState(false);
   const [currentInstanceId, setCurrentInstanceId] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [backendConnected, setBackendConnected] = useState(false);
+
+  useEffect(() => {
+    if (step === 'qr') {
+      // Conectar al servidor backend (ajusta la URL según tu servidor)
+      const socket = io('http://localhost:3000');
+
+      socket.on('connect', () => setBackendConnected(true));
+      socket.on('disconnect', () => setBackendConnected(false));
+
+      socket.on('qr', (qr) => {
+        // Generamos la URL de la imagen del QR a partir del texto recibido
+        setQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qr)}`);
+      });
+
+      socket.on('ready', async () => {
+        if (currentInstanceId) {
+          await onConnect(currentInstanceId);
+          setStep('success');
+        }
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    }
+  }, [step, currentInstanceId, onConnect]);
 
   const handleAdd = async () => {
     if (!name) return;
     setLoading(true);
     try {
       const instance = await onAdd(name);
-      // Corregido: Supabase devuelve qr_code, no qrCode
-      setQrCode(instance.qr_code);
       setCurrentInstanceId(instance.id);
       setStep('qr');
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConfirmScan = async () => {
-    if (!currentInstanceId) return;
-    setLoading(true);
-    try {
-      await onConnect(currentInstanceId);
-      setStep('success');
     } catch (error) {
       console.error(error);
     } finally {
@@ -95,6 +108,11 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect }: QRCodeModalPr
 
           {step === 'qr' && (
             <div className="flex flex-col items-center justify-center space-y-6">
+              {!backendConnected && (
+                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs font-bold">
+                  <WifiOff className="w-4 h-4" /> ESPERANDO CONEXIÓN CON EL SERVIDOR...
+                </div>
+              )}
               <div className="relative p-4 bg-white rounded-3xl shadow-inner border-4 border-primary/10">
                 {qrCode ? (
                   <img src={qrCode} alt="WhatsApp QR Code" className="w-48 h-48" />
@@ -135,13 +153,8 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect }: QRCodeModalPr
             </>
           )}
           {step === 'qr' && (
-            <Button 
-              onClick={handleConfirmScan} 
-              disabled={loading}
-              className="rounded-xl font-bold h-12 px-8 min-w-[200px]"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Ya lo he escaneado
+            <Button variant="outline" onClick={handleClose} className="rounded-xl font-bold h-12 px-8">
+              Cancelar
             </Button>
           )}
           {step === 'success' && (
