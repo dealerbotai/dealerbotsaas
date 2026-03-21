@@ -1,18 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Intentamos obtener las variables de entorno
+// Vite requiere el prefijo VITE_ para exponer variables al cliente
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Si faltan las variables, usamos valores temporales para evitar que la app se rompa al cargar,
-// pero mostramos un error claro en la consola.
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("❌ ERROR: Faltan las credenciales de Supabase en los Secrets.");
-  console.info("Asegúrate de tener VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY configurados.");
+if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
+  console.error("❌ ERROR CRÍTICO: VITE_SUPABASE_URL no detectada o es inválida.");
 }
 
-// Solo inicializamos si tenemos una URL válida para evitar el error de .trim()
+if (!supabaseAnonKey || supabaseAnonKey.includes('placeholder')) {
+  console.error("❌ ERROR CRÍTICO: VITE_SUPABASE_ANON_KEY no detectada.");
+}
+
+// Inicialización del cliente
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder-url.supabase.co', 
-  supabaseAnonKey || 'placeholder-key'
+  supabaseUrl || 'https://missing-url.supabase.co', 
+  supabaseAnonKey || 'missing-key'
 );
