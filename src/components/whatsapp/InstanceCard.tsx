@@ -46,7 +46,7 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete }: InstanceCardPr
           </div>
           <div>
             <CardTitle className="text-lg font-bold tracking-tight">{instance.name}</CardTitle>
-            <p className="text-sm text-muted-foreground font-medium">{instance.phoneNumber || 'Sin vincular'}</p>
+            <p className="text-sm text-muted-foreground font-medium">{instance.phone_number || 'Sin vincular'}</p>
           </div>
         </div>
         <DropdownMenu>
@@ -82,11 +82,11 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete }: InstanceCardPr
           <div className="flex flex-col items-end gap-1">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado del Bot</span>
             <div className="flex items-center gap-3">
-              <span className={cn("text-sm font-bold", instance.botEnabled ? "text-primary" : "text-muted-foreground")}>
-                {instance.botEnabled ? 'ACTIVO' : 'INACTIVO'}
+              <span className={cn("text-sm font-bold", instance.bot_enabled ? "text-primary" : "text-muted-foreground")}>
+                {instance.bot_enabled ? 'ACTIVO' : 'INACTIVO'}
               </span>
               <Switch
-                checked={instance.botEnabled}
+                checked={instance.bot_enabled}
                 onCheckedChange={(checked) => onToggleBot(instance.id, checked)}
                 className="data-[state=checked]:bg-primary"
               />
@@ -101,7 +101,7 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete }: InstanceCardPr
           </div>
           <div className="bg-accent/30 rounded-2xl p-3 border border-border/50">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Última Actividad</p>
-            <p className="text-sm font-bold">{instance.lastActive ? new Date(instance.lastActive).toLocaleTimeString() : 'Nunca'}</p>
+            <p className="text-sm font-bold">{instance.last_active ? new Date(instance.last_active).toLocaleTimeString() : 'Nunca'}</p>
           </div>
         </div>
       </CardContent>

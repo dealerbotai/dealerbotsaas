@@ -4,11 +4,11 @@ import { generateAIResponse } from '@/services/ai';
 export interface WhatsAppInstance {
   id: string;
   name: string;
-  phoneNumber?: string;
+  phone_number?: string;
   status: 'connected' | 'disconnected' | 'connecting' | 'qr_ready';
-  botEnabled: boolean;
-  lastActive?: string;
-  qrCode?: string;
+  bot_enabled: boolean;
+  last_active?: string;
+  qr_code?: string;
   scope: 'all' | 'groups' | 'specific';
 }
 
@@ -19,9 +19,9 @@ export interface ScrapedData {
 }
 
 export interface GlobalSettings {
-  groqApiKey: string;
-  ecommerceUrl: string;
-  scrapedData?: ScrapedData;
+  groq_api_key: string;
+  ecommerce_url: string;
+  scraped_data?: ScrapedData;
 }
 
 export const mockApi = {
@@ -39,8 +39,8 @@ export const mockApi = {
     const newInstance = {
       name,
       status: 'qr_ready',
-      botEnabled: false,
-      qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=mock-whatsapp-qr-' + Date.now(),
+      bot_enabled: false,
+      qr_code: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=mock-whatsapp-qr-' + Date.now(),
       scope: 'all',
     };
 
@@ -59,8 +59,8 @@ export const mockApi = {
       .from('instances')
       .update({ 
         status: 'connected', 
-        phoneNumber: `+52 ${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-        lastActive: new Date().toISOString()
+        phone_number: `+52 ${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+        last_active: new Date().toISOString()
       })
       .eq('id', id);
 
@@ -71,7 +71,7 @@ export const mockApi = {
   toggleBot: async (id: string, enabled: boolean) => {
     const { error } = await supabase
       .from('instances')
-      .update({ botEnabled: enabled })
+      .update({ bot_enabled: enabled })
       .eq('id', id);
 
     if (error) throw error;
@@ -92,16 +92,15 @@ export const mockApi = {
     const { data, error } = await supabase
       .from('settings')
       .select('*')
-      .single();
+      .limit(1)
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') throw error;
-    
-    return data || { groqApiKey: '', ecommerceUrl: '' };
+    if (error) throw error;
+    return data || { groq_api_key: '', ecommerce_url: '' };
   },
 
   updateSettings: async (newSettings: Partial<GlobalSettings>) => {
-    // Intentamos obtener el ID del primer registro de settings
-    const { data: existing } = await supabase.from('settings').select('id').limit(1).single();
+    const { data: existing } = await supabase.from('settings').select('id').limit(1).maybeSingle();
 
     let result;
     if (existing) {
@@ -135,18 +134,7 @@ export const mockApi = {
       lastScraped: new Date().toISOString(),
     };
     
-    await mockApi.updateSettings({ ecommerceUrl: url, scrapedData: mockData });
+    await mockApi.updateSettings({ ecommerce_url: url, scraped_data: mockData });
     return mockData;
-  },
-
-  testAI: async (message: string) => {
-    const settings = await mockApi.getSettings();
-    if (!settings.groqApiKey) throw new Error("Configura tu clave de Groq primero");
-    
-    const context = settings.scrapedData 
-      ? JSON.stringify(settings.scrapedData.products) 
-      : "No hay productos indexados aún.";
-      
-    return await generateAIResponse(settings.groqApiKey, message, context);
   }
 };

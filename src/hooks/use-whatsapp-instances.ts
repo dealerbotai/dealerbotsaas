@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { mockApi, WhatsAppInstance, GlobalSettings, ScrapedData } from '../lib/mock-api';
+import { mockApi, WhatsAppInstance, GlobalSettings } from '../lib/mock-api';
 import { toast } from '../utils/toast';
 
 export const useWhatsApp = () => {
   const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
-  const [settings, setSettings] = useState<GlobalSettings>({ groqApiKey: '', ecommerceUrl: '' });
+  const [settings, setSettings] = useState<GlobalSettings>({ groq_api_key: '', ecommerce_url: '' });
   const [loading, setLoading] = useState(true);
   const [scraping, setScraping] = useState(false);
 
@@ -13,7 +13,7 @@ export const useWhatsApp = () => {
       const data = await mockApi.getInstances();
       setInstances(data);
     } catch (error) {
-      toast.error('Error al obtener las instancias');
+      console.error(error);
     }
   }, []);
 
@@ -22,7 +22,7 @@ export const useWhatsApp = () => {
       const data = await mockApi.getSettings();
       setSettings(data);
     } catch (error) {
-      toast.error('Error al obtener la configuración');
+      console.error(error);
     }
   }, []);
 
@@ -38,7 +38,7 @@ export const useWhatsApp = () => {
   const addInstance = async (name: string) => {
     try {
       const newInstance = await mockApi.addInstance(name);
-      setInstances((prev) => [...prev, newInstance]);
+      setInstances((prev) => [newInstance, ...prev]);
       toast.success('Instancia añadida con éxito');
       return newInstance;
     } catch (error) {
@@ -61,7 +61,7 @@ export const useWhatsApp = () => {
     try {
       await mockApi.toggleBot(id, enabled);
       setInstances((prev) =>
-        prev.map((inst) => (inst.id === id ? { ...inst, botEnabled: enabled } : inst))
+        prev.map((inst) => (inst.id === id ? { ...inst, bot_enabled: enabled } : inst))
       );
       toast.success(`Bot ${enabled ? 'activado' : 'desactivado'}`);
     } catch (error) {
@@ -93,7 +93,7 @@ export const useWhatsApp = () => {
     setScraping(true);
     try {
       const data = await mockApi.scrapeUrl(url);
-      setSettings((prev) => ({ ...prev, ecommerceUrl: url, scrapedData: data }));
+      setSettings((prev) => ({ ...prev, ecommerce_url: url, scraped_data: data }));
       toast.success('URL escaneada con éxito');
       return data;
     } catch (error) {
