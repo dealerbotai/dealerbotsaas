@@ -1,14 +1,13 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Settings, MessageSquare, PlusCircle, Bot, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-  { icon: MessageSquare, label: 'Instances', path: '/instances' },
-  { icon: Globe, label: 'Ecommerce Scraper', path: '/settings#scraper' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: LayoutDashboard, label: 'Panel de Control', path: '/' },
+  { icon: MessageSquare, label: 'Instancias', path: '/instances' },
+  { icon: Globe, label: 'Escáner de Tienda', path: '/settings#scraper' },
+  { icon: Settings, label: 'Configuración', path: '/settings' },
 ];
 
 export const Sidebar = () => {
@@ -45,11 +44,11 @@ export const Sidebar = () => {
       <div className="mt-auto pt-4 border-t border-border">
         <div className="bg-accent/50 rounded-2xl p-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            System Status
+            Estado del Sistema
           </p>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-sm font-medium">All systems operational</span>
+            <span className="text-sm font-medium">Sistemas operativos</span>
           </div>
         </div>
       </div>

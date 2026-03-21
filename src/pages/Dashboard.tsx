@@ -14,10 +14,10 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const stats = [
-    { label: 'Total Instances', value: instances.length, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: 'Active Bots', value: instances.filter(i => i.botEnabled).length, icon: Zap, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-    { label: 'Connected', value: instances.filter(i => i.status === 'connected').length, icon: Activity, color: 'text-green-500', bg: 'bg-green-500/10' },
-    { label: 'Messages Today', value: '1,284', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+    { label: 'Total de Instancias', value: instances.length, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { label: 'Bots Activos', value: instances.filter(i => i.botEnabled).length, icon: Zap, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+    { label: 'Conectados', value: instances.filter(i => i.status === 'connected').length, icon: Activity, color: 'text-green-500', bg: 'bg-green-500/10' },
+    { label: 'Mensajes Hoy', value: '1,284', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-500/10' },
   ];
 
   return (
@@ -25,14 +25,14 @@ const Dashboard = () => {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground font-medium">Manage your WhatsApp automation network.</p>
+            <h1 className="text-3xl font-bold tracking-tight">Panel de Control</h1>
+            <p className="text-muted-foreground font-medium">Gestiona tu red de automatización de WhatsApp.</p>
           </div>
           <Button 
             onClick={() => setIsModalOpen(true)} 
             className="rounded-2xl h-12 px-6 font-bold gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
           >
-            <Plus className="w-5 h-5" /> Add New Instance
+            <Plus className="w-5 h-5" /> Añadir Nueva Instancia
           </Button>
         </div>
 
@@ -60,10 +60,10 @@ const Dashboard = () => {
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight">Your Instances</h2>
+            <h2 className="text-xl font-bold tracking-tight">Tus Instancias</h2>
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <div className="w-2 h-2 rounded-full bg-green-500" />
-              {instances.filter(i => i.status === 'connected').length} Online
+              {instances.filter(i => i.status === 'connected').length} En línea
             </div>
           </div>
 
@@ -90,13 +90,13 @@ const Dashboard = () => {
                 <MessageSquare className="w-12 h-12 text-muted-foreground" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold">No instances found</h3>
+                <h3 className="text-2xl font-bold">No se encontraron instancias</h3>
                 <p className="text-muted-foreground max-w-md mx-auto font-medium">
-                  Get started by linking your first WhatsApp account. You can manage multiple accounts from one place.
+                  Comienza vinculando tu primera cuenta de WhatsApp. Puedes gestionar múltiples cuentas desde un solo lugar.
                 </p>
               </div>
               <Button onClick={() => setIsModalOpen(true)} variant="outline" className="rounded-2xl h-12 px-8 font-bold border-primary/20 text-primary hover:bg-primary/5">
-                Link WhatsApp Now
+                Vincular WhatsApp Ahora
               </Button>
             </div>
           )}

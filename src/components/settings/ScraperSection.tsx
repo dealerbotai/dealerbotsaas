@@ -32,22 +32,22 @@ export const ScraperSection = ({ url, scrapedData, onScrape, loading }: ScraperS
           <div className="p-2 bg-primary/10 rounded-xl">
             <Globe className="w-5 h-5 text-primary" />
           </div>
-          <CardTitle className="text-xl font-bold">Ecommerce Scraper</CardTitle>
+          <CardTitle className="text-xl font-bold">Escáner de Ecommerce</CardTitle>
         </div>
         <CardDescription className="text-muted-foreground font-medium">
-          Provide your store URL to train the bot on your products, prices, and descriptions.
+          Proporciona la URL de tu tienda para entrenar al bot con tus productos, precios y descripciones.
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-8 space-y-8">
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="store-url" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Store URL
+              URL de la Tienda
             </Label>
             <div className="flex gap-3">
               <Input
                 id="store-url"
-                placeholder="https://your-store.com"
+                placeholder="https://tu-tienda.com"
                 value={inputUrl}
                 onChange={(e) => setInputUrl(e.target.value)}
                 className="h-12 rounded-xl border-border/50 focus:ring-primary/20"
@@ -58,7 +58,7 @@ export const ScraperSection = ({ url, scrapedData, onScrape, loading }: ScraperS
                 className="h-12 px-6 rounded-xl font-bold gap-2 min-w-[140px]"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                {loading ? 'Scraping...' : 'Start Scrape'}
+                {loading ? 'Escaneando...' : 'Iniciar Escaneo'}
               </Button>
             </div>
           </div>
@@ -73,9 +73,9 @@ export const ScraperSection = ({ url, scrapedData, onScrape, loading }: ScraperS
               className="space-y-6"
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Ingested Products</h3>
+                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Productos Indexados</h3>
                 <Badge variant="secondary" className="rounded-full px-3 py-1 font-bold">
-                  {scrapedData.products.length} Items Found
+                  {scrapedData.products.length} Artículos Encontrados
                 </Badge>
               </div>
 
@@ -104,10 +104,10 @@ export const ScraperSection = ({ url, scrapedData, onScrape, loading }: ScraperS
               <div className="flex items-center gap-2 p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 text-blue-600">
                 <Info className="w-4 h-4 shrink-0" />
                 <p className="text-xs font-medium">
-                  Last updated: {new Date(scrapedData.lastScraped).toLocaleString()}
+                  Última actualización: {new Date(scrapedData.lastScraped).toLocaleString()}
                 </p>
                 <Button variant="ghost" size="sm" className="ml-auto h-8 rounded-lg text-blue-600 hover:bg-blue-500/10 gap-1" onClick={handleScrape}>
-                  <RefreshCw className="w-3 h-3" /> Sync
+                  <RefreshCw className="w-3 h-3" /> Sincronizar
                 </Button>
               </div>
             </motion.div>
@@ -117,9 +117,9 @@ export const ScraperSection = ({ url, scrapedData, onScrape, loading }: ScraperS
                 <Globe className="w-8 h-8 text-muted-foreground" />
               </div>
               <div>
-                <p className="font-bold text-lg">No data ingested yet</p>
+                <p className="font-bold text-lg">Sin datos indexados</p>
                 <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
-                  Enter your store URL above to start training your AI sales assistant.
+                  Introduce la URL de tu tienda arriba para comenzar a entrenar a tu asistente de ventas.
                 </p>
               </div>
             </div>

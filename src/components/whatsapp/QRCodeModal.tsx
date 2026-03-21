@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,14 +49,14 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd }: QRCodeModalProps) => {
             {step === 'success' && <CheckCircle2 className="w-8 h-8 text-green-500" />}
           </div>
           <DialogTitle className="text-2xl font-bold text-center tracking-tight">
-            {step === 'input' && 'Add New Instance'}
-            {step === 'qr' && 'Scan QR Code'}
-            {step === 'success' && 'Instance Linked!'}
+            {step === 'input' && 'Añadir Nueva Instancia'}
+            {step === 'qr' && 'Escanear Código QR'}
+            {step === 'success' && '¡Instancia Vinculada!'}
           </DialogTitle>
           <DialogDescription className="text-center text-muted-foreground font-medium">
-            {step === 'input' && 'Give your WhatsApp instance a name to get started.'}
-            {step === 'qr' && 'Open WhatsApp on your phone and scan the code below.'}
-            {step === 'success' && 'Your WhatsApp account has been successfully linked.'}
+            {step === 'input' && 'Dale un nombre a tu instancia de WhatsApp para comenzar.'}
+            {step === 'qr' && 'Abre WhatsApp en tu teléfono y escanea el código de abajo.'}
+            {step === 'success' && 'Tu cuenta de WhatsApp se ha vinculado correctamente.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -65,10 +64,10 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd }: QRCodeModalProps) => {
           {step === 'input' && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Instance Name</Label>
+                <Label htmlFor="name" className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Nombre de la Instancia</Label>
                 <Input
                   id="name"
-                  placeholder="e.g. Sales Bot - Main"
+                  placeholder="ej. Bot de Ventas - Principal"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="h-12 rounded-xl border-border/50 focus:ring-primary/20"
@@ -88,14 +87,14 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd }: QRCodeModalProps) => {
                   </div>
                 )}
                 <div className="absolute inset-0 flex items-center justify-center bg-white/80 opacity-0 hover:opacity-100 transition-opacity duration-300 rounded-2xl">
-                  <p className="text-xs font-bold text-primary uppercase tracking-widest">Refreshing in 20s</p>
+                  <p className="text-xs font-bold text-primary uppercase tracking-widest">Actualizando en 20s</p>
                 </div>
               </div>
               <div className="bg-accent/50 p-4 rounded-2xl border border-border/50 w-full">
                 <ol className="text-sm space-y-2 font-medium text-muted-foreground">
-                  <li className="flex gap-2"><span className="text-primary font-bold">1.</span> Open WhatsApp on your phone</li>
-                  <li className="flex gap-2"><span className="text-primary font-bold">2.</span> Tap Menu or Settings and select Linked Devices</li>
-                  <li className="flex gap-2"><span className="text-primary font-bold">3.</span> Point your phone to this screen to capture the code</li>
+                  <li className="flex gap-2"><span className="text-primary font-bold">1.</span> Abre WhatsApp en tu teléfono</li>
+                  <li className="flex gap-2"><span className="text-primary font-bold">2.</span> Toca Menú o Ajustes y selecciona Dispositivos Vinculados</li>
+                  <li className="flex gap-2"><span className="text-primary font-bold">3.</span> Apunta tu teléfono a esta pantalla para capturar el código</li>
                 </ol>
               </div>
             </div>
@@ -106,7 +105,7 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd }: QRCodeModalProps) => {
               <div className="bg-green-500/10 p-6 rounded-full mb-4">
                 <CheckCircle2 className="w-12 h-12 text-green-500" />
               </div>
-              <p className="text-lg font-bold text-center">Ready to automate!</p>
+              <p className="text-lg font-bold text-center">¡Listo para automatizar!</p>
             </div>
           )}
         </div>
@@ -114,21 +113,21 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd }: QRCodeModalProps) => {
         <DialogFooter className="sm:justify-center gap-3">
           {step === 'input' && (
             <>
-              <Button variant="ghost" onClick={handleClose} className="rounded-xl font-bold h-12 px-8">Cancel</Button>
+              <Button variant="ghost" onClick={handleClose} className="rounded-xl font-bold h-12 px-8">Cancelar</Button>
               <Button onClick={handleAdd} disabled={!name || loading} className="rounded-xl font-bold h-12 px-8 min-w-[140px]">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Generate QR
+                Generar QR
               </Button>
             </>
           )}
           {step === 'qr' && (
             <Button variant="outline" onClick={() => setStep('success')} className="rounded-xl font-bold h-12 px-8 border-primary/20 text-primary hover:bg-primary/5">
-              I've scanned it
+              Ya lo he escaneado
             </Button>
           )}
           {step === 'success' && (
             <Button onClick={handleClose} className="rounded-xl font-bold h-12 px-12">
-              Go to Dashboard
+              Ir al Panel
             </Button>
           )}
         </DialogFooter>

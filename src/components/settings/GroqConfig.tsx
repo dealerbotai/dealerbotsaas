@@ -30,16 +30,16 @@ export const GroqConfig = ({ apiKey, onSave }: GroqConfigProps) => {
           <div className="p-2 bg-primary/10 rounded-xl">
             <Key className="w-5 h-5 text-primary" />
           </div>
-          <CardTitle className="text-xl font-bold">Groq AI Configuration</CardTitle>
+          <CardTitle className="text-xl font-bold">Configuración de Groq AI</CardTitle>
         </div>
         <CardDescription className="text-muted-foreground font-medium">
-          Enter your Groq API key to power the AI sales bot. Your key is stored locally and never shared.
+          Introduce tu clave API de Groq para potenciar el bot de ventas. Tu clave se guarda localmente y nunca se comparte.
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-8 space-y-6">
         <div className="space-y-2">
           <Label htmlFor="api-key" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            API Key
+            Clave API
           </Label>
           <div className="relative">
             <Input
@@ -68,11 +68,11 @@ export const GroqConfig = ({ apiKey, onSave }: GroqConfigProps) => {
         >
           {isSaved ? (
             <>
-              <CheckCircle2 className="w-4 h-4" /> Saved Successfully
+              <CheckCircle2 className="w-4 h-4" /> Guardado con Éxito
             </>
           ) : (
             <>
-              <Save className="w-4 h-4" /> Save Configuration
+              <Save className="w-4 h-4" /> Guardar Configuración
             </>
           )}
         </Button>

@@ -1,4 +1,3 @@
-
 import { WhatsAppInstance } from '@/lib/mock-api';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +27,13 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete }: InstanceCardPr
     qr_ready: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
   };
 
+  const statusLabels = {
+    connected: 'Conectado',
+    disconnected: 'Desconectado',
+    connecting: 'Conectando',
+    qr_ready: 'QR Listo',
+  };
+
   return (
     <Card className="group relative overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 rounded-3xl">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -40,7 +46,7 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete }: InstanceCardPr
           </div>
           <div>
             <CardTitle className="text-lg font-bold tracking-tight">{instance.name}</CardTitle>
-            <p className="text-sm text-muted-foreground font-medium">{instance.phoneNumber || 'Not linked'}</p>
+            <p className="text-sm text-muted-foreground font-medium">{instance.phoneNumber || 'Sin vincular'}</p>
           </div>
         </div>
         <DropdownMenu>
@@ -52,14 +58,14 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete }: InstanceCardPr
           <DropdownMenuContent align="end" className="rounded-xl">
             <DropdownMenuItem asChild>
               <Link to={`/instances/${instance.id}`} className="flex items-center gap-2">
-                <ExternalLink className="w-4 h-4" /> View Details
+                <ExternalLink className="w-4 h-4" /> Ver Detalles
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem 
               className="text-destructive focus:text-destructive flex items-center gap-2"
               onClick={() => onDelete(instance.id)}
             >
-              <Trash2 className="w-4 h-4" /> Delete Instance
+              <Trash2 className="w-4 h-4" /> Eliminar Instancia
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -68,16 +74,16 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete }: InstanceCardPr
       <CardContent className="space-y-6 pt-4">
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado</span>
             <Badge variant="outline" className={cn("capitalize px-3 py-1 rounded-full font-semibold", statusColors[instance.status])}>
-              {instance.status.replace('_', ' ')}
+              {statusLabels[instance.status]}
             </Badge>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bot Status</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado del Bot</span>
             <div className="flex items-center gap-3">
               <span className={cn("text-sm font-bold", instance.botEnabled ? "text-primary" : "text-muted-foreground")}>
-                {instance.botEnabled ? 'ACTIVE' : 'INACTIVE'}
+                {instance.botEnabled ? 'ACTIVO' : 'INACTIVO'}
               </span>
               <Switch
                 checked={instance.botEnabled}
@@ -90,12 +96,12 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete }: InstanceCardPr
 
         <div className="grid grid-cols-2 gap-4 pt-2">
           <div className="bg-accent/30 rounded-2xl p-3 border border-border/50">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Scope</p>
-            <p className="text-sm font-bold capitalize">{instance.scope}</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Alcance</p>
+            <p className="text-sm font-bold capitalize">{instance.scope === 'all' ? 'Todos' : instance.scope === 'groups' ? 'Grupos' : 'Específico'}</p>
           </div>
           <div className="bg-accent/30 rounded-2xl p-3 border border-border/50">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Last Active</p>
-            <p className="text-sm font-bold">{instance.lastActive ? new Date(instance.lastActive).toLocaleTimeString() : 'Never'}</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Última Actividad</p>
+            <p className="text-sm font-bold">{instance.lastActive ? new Date(instance.lastActive).toLocaleTimeString() : 'Nunca'}</p>
           </div>
         </div>
       </CardContent>
@@ -109,11 +115,11 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete }: InstanceCardPr
           <Link to={instance.status === 'qr_ready' ? '#' : `/instances/${instance.id}`}>
             {instance.status === 'qr_ready' ? (
               <>
-                <Power className="w-4 h-4" /> Link WhatsApp
+                <Power className="w-4 h-4" /> Vincular WhatsApp
               </>
             ) : (
               <>
-                <Bot className="w-4 h-4" /> Configure Bot
+                <Bot className="w-4 h-4" /> Configurar Bot
               </>
             )}
           </Link>

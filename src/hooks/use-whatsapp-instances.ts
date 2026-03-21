@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { mockApi, WhatsAppInstance, GlobalSettings, ScrapedData } from '../lib/mock-api';
 import { toast } from '../utils/toast';
@@ -14,7 +13,7 @@ export const useWhatsApp = () => {
       const data = await mockApi.getInstances();
       setInstances(data);
     } catch (error) {
-      toast.error('Failed to fetch instances');
+      toast.error('Error al obtener las instancias');
     }
   }, []);
 
@@ -23,7 +22,7 @@ export const useWhatsApp = () => {
       const data = await mockApi.getSettings();
       setSettings(data);
     } catch (error) {
-      toast.error('Failed to fetch settings');
+      toast.error('Error al obtener la configuración');
     }
   }, []);
 
@@ -40,10 +39,10 @@ export const useWhatsApp = () => {
     try {
       const newInstance = await mockApi.addInstance(name);
       setInstances((prev) => [...prev, newInstance]);
-      toast.success('Instance added successfully');
+      toast.success('Instancia añadida con éxito');
       return newInstance;
     } catch (error) {
-      toast.error('Failed to add instance');
+      toast.error('Error al añadir la instancia');
     }
   };
 
@@ -53,9 +52,9 @@ export const useWhatsApp = () => {
       setInstances((prev) =>
         prev.map((inst) => (inst.id === id ? { ...inst, botEnabled: enabled } : inst))
       );
-      toast.success(`Bot ${enabled ? 'enabled' : 'disabled'}`);
+      toast.success(`Bot ${enabled ? 'activado' : 'desactivado'}`);
     } catch (error) {
-      toast.error('Failed to toggle bot');
+      toast.error('Error al cambiar el estado del bot');
     }
   };
 
@@ -63,9 +62,9 @@ export const useWhatsApp = () => {
     try {
       await mockApi.deleteInstance(id);
       setInstances((prev) => prev.filter((inst) => inst.id !== id));
-      toast.success('Instance deleted');
+      toast.success('Instancia eliminada');
     } catch (error) {
-      toast.error('Failed to delete instance');
+      toast.error('Error al eliminar la instancia');
     }
   };
 
@@ -73,9 +72,9 @@ export const useWhatsApp = () => {
     try {
       const updated = await mockApi.updateSettings(newSettings);
       setSettings(updated);
-      toast.success('Settings updated');
+      toast.success('Configuración actualizada');
     } catch (error) {
-      toast.error('Failed to update settings');
+      toast.error('Error al actualizar la configuración');
     }
   };
 
@@ -84,10 +83,10 @@ export const useWhatsApp = () => {
     try {
       const data = await mockApi.scrapeUrl(url);
       setSettings((prev) => ({ ...prev, ecommerceUrl: url, scrapedData: data }));
-      toast.success('URL scraped successfully');
+      toast.success('URL escaneada con éxito');
       return data;
     } catch (error) {
-      toast.error('Failed to scrape URL');
+      toast.error('Error al escanear la URL');
     } finally {
       setScraping(false);
     }

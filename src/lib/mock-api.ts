@@ -1,4 +1,3 @@
-
 export interface WhatsAppInstance {
   id: string;
   name: string;
@@ -30,7 +29,7 @@ export interface GlobalSettings {
 const MOCK_INSTANCES: WhatsAppInstance[] = [
   {
     id: '1',
-    name: 'Sales Bot - Main',
+    name: 'Bot de Ventas - Principal',
     phoneNumber: '+1234567890',
     status: 'connected',
     botEnabled: true,
@@ -39,7 +38,7 @@ const MOCK_INSTANCES: WhatsAppInstance[] = [
   },
   {
     id: '2',
-    name: 'Support Bot - Groups',
+    name: 'Bot de Soporte - Grupos',
     phoneNumber: '+0987654321',
     status: 'disconnected',
     botEnabled: false,
@@ -97,9 +96,9 @@ export const mockApi = {
     const mockData: ScrapedData = {
       url,
       products: [
-        { name: 'Premium Coffee Beans', price: '$19.99', description: 'Organic dark roast beans.' },
-        { name: 'French Press', price: '$29.99', description: 'Stainless steel 8-cup press.' },
-        { name: 'Coffee Grinder', price: '$45.00', description: 'Burr grinder with 18 settings.' },
+        { name: 'Granos de Café Premium', price: '$19.99', description: 'Granos orgánicos de tueste oscuro.' },
+        { name: 'Prensa Francesa', price: '$29.99', description: 'Prensa de acero inoxidable para 8 tazas.' },
+        { name: 'Molinillo de Café', price: '$45.00', description: 'Molinillo de muelas con 18 ajustes.' },
       ],
       lastScraped: new Date().toISOString(),
     };

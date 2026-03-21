@@ -15,8 +15,8 @@ const Settings = () => {
     <MainLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground font-medium">Configure global parameters for your AI automation.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
+          <p className="text-muted-foreground font-medium">Configura los parámetros globales para tu automatización.</p>
         </div>
 
         <Tabs defaultValue="general" className="space-y-8">
@@ -25,10 +25,10 @@ const Settings = () => {
               <SettingsIcon className="w-4 h-4" /> General
             </TabsTrigger>
             <TabsTrigger value="scraper" className="rounded-xl px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm h-full gap-2">
-              <Globe className="w-4 h-4" /> Scraper
+              <Globe className="w-4 h-4" /> Escáner
             </TabsTrigger>
             <TabsTrigger value="security" className="rounded-xl px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm h-full gap-2">
-              <ShieldCheck className="w-4 h-4" /> Security
+              <ShieldCheck className="w-4 h-4" /> Seguridad
             </TabsTrigger>
           </TabsList>
 
@@ -43,9 +43,9 @@ const Settings = () => {
                 <div className="bg-primary/10 w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
                   <Key className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Why Groq?</h3>
+                <h3 className="text-xl font-bold mb-3">¿Por qué Groq?</h3>
                 <p className="text-muted-foreground leading-relaxed font-medium">
-                  Groq provides ultra-fast inference for Large Language Models. By using Groq, your WhatsApp bot can respond to customers in milliseconds, providing a seamless shopping experience that feels human.
+                  Groq proporciona inferencia ultra rápida para modelos de lenguaje. Al usar Groq, tu bot de WhatsApp puede responder a los clientes en milisegundos, ofreciendo una experiencia de compra fluida y humana.
                 </p>
                 <div className="mt-8 flex items-center gap-4">
                   <div className="flex -space-x-2">
@@ -53,7 +53,7 @@ const Settings = () => {
                       <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-accent" />
                     ))}
                   </div>
-                  <span className="text-sm font-bold text-primary">Trusted by 500+ stores</span>
+                  <span className="text-sm font-bold text-primary">Confiado por más de 500 tiendas</span>
                 </div>
               </div>
             </div>
@@ -72,12 +72,12 @@ const Settings = () => {
 
           <TabsContent value="security" className="outline-none">
             <div className="bg-card border border-border/50 rounded-[32px] p-8">
-              <h3 className="text-xl font-bold mb-6">Security & Privacy</h3>
+              <h3 className="text-xl font-bold mb-6">Seguridad y Privacidad</h3>
               <div className="space-y-6">
                 {[
-                  { title: 'End-to-End Encryption', desc: 'All messages processed by the bot maintain WhatsApp\'s native encryption.' },
-                  { title: 'Local Key Storage', desc: 'Your API keys are never stored on our servers. They remain in your browser.' },
-                  { title: 'Session Management', desc: 'Remotely disconnect any instance at any time with one click.' }
+                  { title: 'Cifrado de Extremo a Extremo', desc: 'Todos los mensajes procesados por el bot mantienen el cifrado nativo de WhatsApp.' },
+                  { title: 'Almacenamiento Local de Claves', desc: 'Tus claves API nunca se guardan en nuestros servidores. Permanecen en tu navegador.' },
+                  { title: 'Gestión de Sesiones', desc: 'Desconecta remotamente cualquier instancia en cualquier momento con un solo clic.' }
                 ].map((item, idx) => (
                   <div key={idx} className="flex gap-4">
                     <div className="mt-1">

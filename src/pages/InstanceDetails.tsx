@@ -27,7 +27,7 @@ const InstanceDetails = () => {
   const instance = instances.find(i => i.id === id);
 
   if (loading) return <MainLayout><div className="animate-pulse space-y-8"><div className="h-12 w-48 bg-accent rounded-xl" /><div className="h-64 bg-accent rounded-3xl" /></div></MainLayout>;
-  if (!instance) return <MainLayout><div className="text-center py-20"><h2 className="text-2xl font-bold">Instance not found</h2><Link to="/"><Button className="mt-4">Back to Dashboard</Button></Link></div></MainLayout>;
+  if (!instance) return <MainLayout><div className="text-center py-20"><h2 className="text-2xl font-bold">Instancia no encontrada</h2><Link to="/"><Button className="mt-4">Volver al Panel</Button></Link></div></MainLayout>;
 
   return (
     <MainLayout>
@@ -42,11 +42,13 @@ const InstanceDetails = () => {
             <h1 className="text-3xl font-bold tracking-tight">{instance.name}</h1>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline" className="rounded-full px-3 py-0.5 font-bold bg-primary/5">
-                {instance.phoneNumber || 'Unlinked'}
+                {instance.phoneNumber || 'Sin vincular'}
               </Badge>
               <div className="flex items-center gap-1.5 ml-2">
                 <div className={cn("w-2 h-2 rounded-full", instance.status === 'connected' ? "bg-green-500" : "bg-red-500")} />
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{instance.status}</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                  {instance.status === 'connected' ? 'Conectado' : 'Desconectado'}
+                </span>
               </div>
             </div>
           </div>
@@ -61,10 +63,10 @@ const InstanceDetails = () => {
                     <div className="p-2 bg-primary/10 rounded-xl">
                       <Bot className="w-5 h-5 text-primary" />
                     </div>
-                    <CardTitle className="text-lg font-bold">Bot Configuration</CardTitle>
+                    <CardTitle className="text-lg font-bold">Configuración del Bot</CardTitle>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-muted-foreground">Bot Active</span>
+                    <span className="text-sm font-bold text-muted-foreground">Bot Activo</span>
                     <Switch 
                       checked={instance.botEnabled} 
                       onCheckedChange={(checked) => toggleBot(instance.id, checked)}
@@ -75,24 +77,28 @@ const InstanceDetails = () => {
               <CardContent className="pt-8 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Response Scope</label>
+                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Alcance de Respuesta</label>
                     <div className="grid grid-cols-3 gap-2">
-                      {['all', 'groups', 'specific'].map((scope) => (
+                      {[
+                        { id: 'all', label: 'Todos' },
+                        { id: 'groups', label: 'Grupos' },
+                        { id: 'specific', label: 'Específicos' }
+                      ].map((scope) => (
                         <Button 
-                          key={scope}
-                          variant={instance.scope === scope ? 'default' : 'outline'}
-                          className="rounded-xl font-bold capitalize h-10"
+                          key={scope.id}
+                          variant={instance.scope === scope.id ? 'default' : 'outline'}
+                          className="rounded-xl font-bold h-10"
                           size="sm"
                         >
-                          {scope}
+                          {scope.label}
                         </Button>
                       ))}
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">AI Personality</label>
+                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Personalidad de IA</label>
                     <Button variant="outline" className="w-full rounded-xl font-bold justify-between h-10">
-                      Professional Sales <Settings className="w-4 h-4" />
+                      Ventas Profesional <Settings className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -100,10 +106,10 @@ const InstanceDetails = () => {
                 <div className="p-6 rounded-2xl bg-accent/30 border border-border/50 space-y-4">
                   <div className="flex items-center gap-2 text-primary">
                     <Shield className="w-5 h-5" />
-                    <h4 className="font-bold">Safety Controls</h4>
+                    <h4 className="font-bold">Controles de Seguridad</h4>
                   </div>
                   <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-                    The bot will only respond to product inquiries based on your scraped ecommerce data. It will not engage in off-topic conversations.
+                    El bot solo responderá a consultas de productos basadas en tus datos de ecommerce. No participará en conversaciones fuera de tema.
                   </p>
                 </div>
               </CardContent>
@@ -115,15 +121,15 @@ const InstanceDetails = () => {
                   <div className="p-2 bg-primary/10 rounded-xl">
                     <History className="w-5 h-5 text-primary" />
                   </div>
-                  <CardTitle className="text-lg font-bold">Recent Activity</CardTitle>
+                  <CardTitle className="text-lg font-bold">Actividad Reciente</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-border/50">
                   {[
-                    { type: 'msg', user: '+1 555 0123', text: 'How much is the French Press?', time: '2m ago' },
-                    { type: 'bot', user: 'Bot Response', text: 'The French Press is $29.99. Would you like to order?', time: '2m ago' },
-                    { type: 'msg', user: '+1 555 9876', text: 'Do you have coffee beans?', time: '15m ago' },
+                    { type: 'msg', user: '+1 555 0123', text: '¿Cuánto cuesta la Prensa Francesa?', time: 'hace 2m' },
+                    { type: 'bot', user: 'Respuesta del Bot', text: 'La Prensa Francesa cuesta $29.99. ¿Te gustaría pedir una?', time: 'hace 2m' },
+                    { type: 'msg', user: '+1 555 9876', text: '¿Tienen granos de café?', time: 'hace 15m' },
                   ].map((log, idx) => (
                     <div key={idx} className="p-4 flex items-start gap-4 hover:bg-accent/20 transition-colors">
                       <div className={cn(
@@ -143,7 +149,7 @@ const InstanceDetails = () => {
                   ))}
                 </div>
                 <Button variant="ghost" className="w-full rounded-none h-12 font-bold text-primary hover:bg-primary/5">
-                  View Full Logs
+                  Ver Registros Completos
                 </Button>
               </CardContent>
             </Card>
@@ -152,24 +158,24 @@ const InstanceDetails = () => {
           <div className="space-y-8">
             <Card className="rounded-[32px] border-border/50 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg font-bold">System Status</CardTitle>
+                <CardTitle className="text-lg font-bold">Estado del Sistema</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Connection</span>
-                  <Badge className="bg-green-500/10 text-green-500 border-green-500/20 rounded-full">Stable</Badge>
+                  <span className="text-sm font-medium text-muted-foreground">Conexión</span>
+                  <Badge className="bg-green-500/10 text-green-500 border-green-500/20 rounded-full">Estable</Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Uptime</span>
+                  <span className="text-sm font-medium text-muted-foreground">Tiempo de actividad</span>
                   <span className="text-sm font-bold">99.9%</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Latency</span>
+                  <span className="text-sm font-medium text-muted-foreground">Latencia</span>
                   <span className="text-sm font-bold">142ms</span>
                 </div>
                 <div className="pt-4 border-t border-border/50">
                   <Button variant="outline" className="w-full rounded-xl font-bold h-11 gap-2">
-                    <Activity className="w-4 h-4" /> Restart Session
+                    <Activity className="w-4 h-4" /> Reiniciar Sesión
                   </Button>
                 </div>
               </CardContent>
@@ -177,23 +183,23 @@ const InstanceDetails = () => {
 
             <Card className="rounded-[32px] border-destructive/20 bg-destructive/5 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg font-bold text-destructive">Danger Zone</CardTitle>
+                <CardTitle className="text-lg font-bold text-destructive">Zona de Peligro</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-xs font-medium text-destructive/80 leading-relaxed">
-                  Deleting this instance will permanently remove all session data and bot configurations. This action cannot be undone.
+                  Eliminar esta instancia borrará permanentemente todos los datos de sesión y configuraciones del bot. Esta acción no se puede deshacer.
                 </p>
                 <Button 
                   variant="destructive" 
                   className="w-full rounded-xl font-bold h-11 gap-2"
                   onClick={() => {
-                    if (confirm('Are you sure you want to delete this instance?')) {
+                    if (confirm('¿Estás seguro de que quieres eliminar esta instancia?')) {
                       deleteInstance(instance.id);
                       window.location.href = '/';
                     }
                   }}
                 >
-                  <Trash2 className="w-4 h-4" /> Delete Instance
+                  <Trash2 className="w-4 h-4" /> Eliminar Instancia
                 </Button>
               </CardContent>
             </Card>
