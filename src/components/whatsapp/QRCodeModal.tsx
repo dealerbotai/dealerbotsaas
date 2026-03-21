@@ -3,19 +3,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { Loader2, QrCode, CheckCircle2, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Loader2, QrCode, CheckCircle2 } from 'lucide-react';
 
 interface QRCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (name: string) => Promise<any>;
+  onConnect: (id: string) => Promise<void>;
 }
 
-export const QRCodeModal = ({ isOpen, onClose, onAdd }: QRCodeModalProps) => {
+export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect }: QRCodeModalProps) => {
   const [name, setName] = useState('');
   const [step, setStep] = useState<'input' | 'qr' | 'success'>('input');
   const [loading, setLoading] = useState(false);
+  const [currentInstanceId, setCurrentInstanceId] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
 
   const handleAdd = async () => {
@@ -24,7 +25,21 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd }: QRCodeModalProps) => {
     try {
       const instance = await onAdd(name);
       setQrCode(instance.qrCode);
+      setCurrentInstanceId(instance.id);
       setStep('qr');
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmScan = async () => {
+    if (!currentInstanceId) return;
+    setLoading(true);
+    try {
+      await onConnect(currentInstanceId);
+      setStep('success');
     } catch (error) {
       console.error(error);
     } finally {
@@ -36,6 +51,7 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd }: QRCodeModalProps) => {
     setStep('input');
     setName('');
     setQrCode(null);
+    setCurrentInstanceId(null);
     onClose();
   };
 
@@ -86,9 +102,6 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd }: QRCodeModalProps) => {
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   </div>
                 )}
-                <div className="absolute inset-0 flex items-center justify-center bg-white/80 opacity-0 hover:opacity-100 transition-opacity duration-300 rounded-2xl">
-                  <p className="text-xs font-bold text-primary uppercase tracking-widest">Actualizando en 20s</p>
-                </div>
               </div>
               <div className="bg-accent/50 p-4 rounded-2xl border border-border/50 w-full">
                 <ol className="text-sm space-y-2 font-medium text-muted-foreground">
@@ -121,7 +134,12 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd }: QRCodeModalProps) => {
             </>
           )}
           {step === 'qr' && (
-            <Button variant="outline" onClick={() => setStep('success')} className="rounded-xl font-bold h-12 px-8 border-primary/20 text-primary hover:bg-primary/5">
+            <Button 
+              onClick={handleConfirmScan} 
+              disabled={loading}
+              className="rounded-xl font-bold h-12 px-8 min-w-[200px]"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Ya lo he escaneado
             </Button>
           )}

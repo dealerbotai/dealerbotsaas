@@ -43,6 +43,17 @@ export const useWhatsApp = () => {
       return newInstance;
     } catch (error) {
       toast.error('Error al añadir la instancia');
+      throw error;
+    }
+  };
+
+  const connectInstance = async (id: string) => {
+    try {
+      await mockApi.connectInstance(id);
+      await fetchInstances();
+      toast.success('WhatsApp vinculado correctamente');
+    } catch (error) {
+      toast.error('Error al vincular WhatsApp');
     }
   };
 
@@ -98,6 +109,7 @@ export const useWhatsApp = () => {
     loading,
     scraping,
     addInstance,
+    connectInstance,
     toggleBot,
     deleteInstance,
     updateSettings,

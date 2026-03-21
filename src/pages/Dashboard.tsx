@@ -10,7 +10,7 @@ import { Plus, Users, MessageSquare, Zap, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Dashboard = () => {
-  const { instances, loading, toggleBot, deleteInstance, addInstance } = useWhatsApp();
+  const { instances, loading, toggleBot, deleteInstance, addInstance, connectInstance } = useWhatsApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const stats = [
@@ -107,6 +107,7 @@ const Dashboard = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={addInstance}
+        onConnect={connectInstance}
       />
     </MainLayout>
   );
