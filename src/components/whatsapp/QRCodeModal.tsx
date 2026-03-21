@@ -31,8 +31,7 @@ export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess
 
     socket.on('ready', () => {
       setStep('success');
-      onSuccess(); // Refrescar la lista de instancias
-    });
+      onSuccess(); // Refrescar la lista de instancias    });
 
     socket.on('error', (data: { message: string }) => {
       setError(data.message);
@@ -109,7 +108,7 @@ export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess
                 )}
               </div>
               <p className="text-sm text-center text-muted-foreground font-medium">
-                Abre WhatsApp > Dispositivos vinculados > Vincular un dispositivo
+                Abre WhatsApp {'>'} Dispositivos vinculados {'>'} Vincular un dispositivo
               </p>
             </div>
           )}
@@ -132,8 +131,7 @@ export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess
           )}
           {step === 'qr' && (
             <Button variant="outline" onClick={handleClose} className="rounded-xl font-bold h-12 px-8 w-full">
-              Cancelar
-            </Button>
+              Cancelar            </Button>
           )}
           {step === 'success' && (
             <Button onClick={handleClose} className="rounded-xl font-bold h-12 px-12 w-full">

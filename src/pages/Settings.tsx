@@ -35,9 +35,7 @@ const Settings = () => {
           <TabsContent value="general" className="space-y-8 outline-none">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <GroqConfig 
-                apiKey={settings.groqApiKey} 
-                onSave={(key) => updateSettings({ groqApiKey: key })} 
-              />
+                apiKey={settings.groq_api_key}                 onSave={(key) => updateSettings({ groq_api_key: key })}               />
               
               <div className="bg-primary/5 rounded-[32px] p-8 border border-primary/10 flex flex-col justify-center">
                 <div className="bg-primary/10 w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
@@ -62,10 +60,9 @@ const Settings = () => {
           <TabsContent value="scraper" className="outline-none">
             <div className="max-w-4xl">
               <ScraperSection 
-                url={settings.ecommerceUrl} 
-                scrapedData={settings.scrapedData} 
-                onScrape={scrapeUrl} 
-                loading={scraping} 
+                url={settings.ecommerce_url} 
+                scrapedData={settings.scraped_data} 
+                onScrape={scrapeUrl}                 loading={scraping} 
               />
             </div>
           </TabsContent>
@@ -87,7 +84,7 @@ const Settings = () => {
                       <h4 className="font-bold">{item.title}</h4>
                       <p className="text-sm text-muted-foreground font-medium">{item.desc}</p>
                     </div>
-                  </div>
+                  }
                 ))}
               </div>
             </div>
