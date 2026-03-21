@@ -59,9 +59,7 @@ const Settings = () => {
 
           <TabsContent value="scraper" className="outline-none">
             <div className="max-w-4xl">
-              <ScraperSection 
-                url={settings.ecommerce_url} 
-                scrapedData={settings.scraped_data} 
+              <ScraperSection                 url={settings.ecommerce_url}                 scrapedData={settings.scraped_data} 
                 onScrape={scrapeUrl}                 loading={scraping} 
               />
             </div>

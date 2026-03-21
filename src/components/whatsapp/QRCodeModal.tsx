@@ -24,23 +24,28 @@ export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('qr', (data: { qr: string }) => {
+    const handleQr = (data: { qr: string }) => {
       setQrCode(data.qr);
       setStep('qr');
-    });
+    };
 
-    socket.on('ready', () => {
+    const handleReady = () => {
       setStep('success');
-      onSuccess(); // Refrescar la lista de instancias    });
+      onSuccess(); // Refrescar la lista de instancias
+    };
 
-    socket.on('error', (data: { message: string }) => {
+    const handleError = (data: { message: string }) => {
       setError(data.message);
-    });
+    };
+
+    socket.on('qr', handleQr);
+    socket.on('ready', handleReady);
+    socket.on('error', handleError);
 
     return () => {
-      socket.off('qr');
-      socket.off('ready');
-      socket.off('error');
+      socket.off('qr', handleQr);
+      socket.off('ready', handleReady);
+      socket.off('error', handleError);
     };
   }, [socket, onSuccess]);
 
@@ -131,7 +136,8 @@ export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess
           )}
           {step === 'qr' && (
             <Button variant="outline" onClick={handleClose} className="rounded-xl font-bold h-12 px-8 w-full">
-              Cancelar            </Button>
+              Cancelar
+            </Button>
           )}
           {step === 'success' && (
             <Button onClick={handleClose} className="rounded-xl font-bold h-12 px-12 w-full">
