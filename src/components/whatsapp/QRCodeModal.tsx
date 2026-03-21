@@ -24,7 +24,8 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect }: QRCodeModalPr
     setLoading(true);
     try {
       const instance = await onAdd(name);
-      setQrCode(instance.qrCode);
+      // Corregido: Supabase devuelve qr_code, no qrCode
+      setQrCode(instance.qr_code);
       setCurrentInstanceId(instance.id);
       setStep('qr');
     } catch (error) {

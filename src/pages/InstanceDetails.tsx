@@ -42,7 +42,7 @@ const InstanceDetails = () => {
             <h1 className="text-3xl font-bold tracking-tight">{instance.name}</h1>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline" className="rounded-full px-3 py-0.5 font-bold bg-primary/5">
-                {instance.phoneNumber || 'Sin vincular'}
+                {instance.phone_number || 'Sin vincular'}
               </Badge>
               <div className="flex items-center gap-1.5 ml-2">
                 <div className={cn("w-2 h-2 rounded-full", instance.status === 'connected' ? "bg-green-500" : "bg-red-500")} />
@@ -68,7 +68,7 @@ const InstanceDetails = () => {
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-bold text-muted-foreground">Bot Activo</span>
                     <Switch 
-                      checked={instance.botEnabled} 
+                      checked={instance.bot_enabled} 
                       onCheckedChange={(checked) => toggleBot(instance.id, checked)}
                     />
                   </div>
