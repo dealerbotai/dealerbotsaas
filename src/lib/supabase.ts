@@ -1,19 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Vite requiere el prefijo VITE_ para exponer variables al cliente
+// Vite solo expone variables que empiezan con VITE_
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
-  console.error("❌ ERROR CRÍTICO: VITE_SUPABASE_URL no detectada o es inválida.");
+// Log de diagnóstico (solo visible en la consola del navegador)
+if (!supabaseUrl) {
+  console.warn("⚠️ VITE_SUPABASE_URL está vacía. Usando fallback de error.");
+} else {
+  console.log("✅ VITE_SUPABASE_URL detectada correctamente.");
 }
 
-if (!supabaseAnonKey || supabaseAnonKey.includes('placeholder')) {
-  console.error("❌ ERROR CRÍTICO: VITE_SUPABASE_ANON_KEY no detectada.");
-}
-
-// Inicialización del cliente
+// Inicialización del cliente con valores de fallback claros
 export const supabase = createClient(
-  supabaseUrl || 'https://missing-url.supabase.co', 
-  supabaseAnonKey || 'missing-key'
+  supabaseUrl || 'https://missing-url-check-secrets.supabase.co', 
+  supabaseAnonKey || 'missing-key-check-secrets'
 );
