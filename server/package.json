@@ -1,0 +1,17 @@
+{
+  "name": "whatsapp-bot-server",
+  "version": "1.0.0",
+  "description": "Backend independiente para gestión de WhatsApp Web",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.23.0",
+    "qrcode-terminal": "^0.12.0",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "cors": "^2.8.5"
+  }
+}

@@ -4,28 +4,47 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { Loader2, QrCode, CheckCircle2, Info } from 'lucide-react';
-import { WhatsAppInstance } from '@/lib/api';
+import { WhatsAppInstance } from '@/lib/mock-api';
+import { Socket } from 'socket.io-client';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface QRCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (name: string) => Promise<WhatsAppInstance>;
-  instances: WhatsAppInstance[];
+  onConnect: (id: string) => Promise<void>;
+  socket: Socket | null;
 }
 
-export const QRCodeModal = ({ isOpen, onClose, onAdd, instances }: QRCodeModalProps) => {
+export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect, socket }: QRCodeModalProps) => {
   const [name, setName] = useState('');
   const [step, setStep] = useState<'input' | 'qr' | 'success'>('input');
   const [loading, setLoading] = useState(false);
   const [currentInstanceId, setCurrentInstanceId] = useState<string | null>(null);
-
-  const currentInstance = instances.find(i => i.id === currentInstanceId);
+  const [qrCode, setQrCode] = useState<string | null>(null);
 
   useEffect(() => {
-    if (currentInstance?.status === 'connected') {
-      setStep('success');
-    }
-  }, [currentInstance?.status]);
+    if (!socket) return;
+
+    socket.on('qr', (data: { instanceId: string, qr: string }) => {
+      if (data.instanceId === currentInstanceId) {
+        setQrCode(data.qr);
+        setStep('qr');
+      }
+    });
+
+    socket.on('ready', async (data: { instanceId: string }) => {
+      if (data.instanceId === currentInstanceId) {
+        await onConnect(data.instanceId);
+        setStep('success');
+      }
+    });
+
+    return () => {
+      socket.off('qr');
+      socket.off('ready');
+    };
+  }, [socket, currentInstanceId, onConnect]);
 
   const handleAdd = async () => {
     if (!name) return;
@@ -33,7 +52,7 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, instances }: QRCodeModalPr
     try {
       const instance = await onAdd(name);
       setCurrentInstanceId(instance.id);
-      setStep('qr');
+      // El hook useWhatsApp ya emite 'init-instance' al socket
     } catch (error) {
       console.error(error);
     } finally {
@@ -45,6 +64,7 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, instances }: QRCodeModalPr
     setStep('input');
     setName('');
     setCurrentInstanceId(null);
+    setQrCode(null);
     onClose();
   };
 
@@ -85,11 +105,11 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, instances }: QRCodeModalPr
             </div>
           )}
 
-          {step === 'qr' && (
+          {step === 'qr' || (step === 'input' && loading) ? (
             <div className="flex flex-col items-center justify-center space-y-6">
               <div className="relative p-4 bg-white rounded-3xl shadow-inner border-4 border-primary/10">
-                {currentInstance?.qr_code ? (
-                  <img src={currentInstance.qr_code} alt="WhatsApp QR Code" className="w-48 h-48" />
+                {qrCode ? (
+                  <QRCodeSVG value={qrCode} size={200} />
                 ) : (
                   <div className="w-48 h-48 flex flex-col items-center justify-center bg-muted rounded-2xl p-4 text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
@@ -101,11 +121,11 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, instances }: QRCodeModalPr
               <div className="bg-blue-500/5 p-4 rounded-2xl border border-blue-500/10 w-full flex gap-3">
                 <Info className="w-5 h-5 text-blue-500 shrink-0" />
                 <p className="text-xs font-medium text-blue-700 leading-relaxed">
-                  Asegúrate de tener el backend ejecutándose en tu máquina local para que el QR aparezca aquí.
+                  Asegúrate de que el servidor en la carpeta `/server` esté corriendo para generar el código.
                 </p>
               </div>
             </div>
-          )}
+          ) : null}
 
           {step === 'success' && (
             <div className="flex flex-col items-center justify-center py-4">

@@ -1,12 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { mockApi, WhatsAppInstance, GlobalSettings } from '../lib/mock-api';
 import { toast } from '../utils/toast';
+import { io, Socket } from 'socket.io-client';
 
 export const useWhatsApp = () => {
   const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
   const [settings, setSettings] = useState<GlobalSettings>({ groq_api_key: '', ecommerce_url: '' });
   const [loading, setLoading] = useState(true);
   const [scraping, setScraping] = useState(false);
+  const [socket, setSocket] = useState<Socket | null>(null);
+
+  // URL del backend independiente (configurable)
+  const BACKEND_URL = "http://localhost:3001";
+
+  useEffect(() => {
+    const newSocket = io(BACKEND_URL);
+    setSocket(newSocket);
+    return () => {
+      newSocket.close();
+    };
+  }, []);
 
   const fetchInstances = useCallback(async () => {
     try {
@@ -39,7 +52,13 @@ export const useWhatsApp = () => {
     try {
       const newInstance = await mockApi.addInstance(name);
       setInstances((prev) => [newInstance, ...prev]);
-      toast.success('Instancia añadida con éxito');
+      
+      // Notificar al backend para que empiece a generar el QR
+      if (socket) {
+        socket.emit('init-instance', newInstance.id);
+      }
+      
+      toast.success('Instancia creada. Esperando QR...');
       return newInstance;
     } catch (error) {
       toast.error('Error al añadir la instancia');
@@ -108,6 +127,7 @@ export const useWhatsApp = () => {
     settings,
     loading,
     scraping,
+    socket,
     addInstance,
     connectInstance,
     toggleBot,
