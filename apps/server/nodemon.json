@@ -1,0 +1,12 @@
+{
+  "verbose": false,
+  "ignore": [
+    "auth_info_baileys/**",
+    "*.json",
+    "node_modules/**",
+    ".git/**"
+  ],
+  "execMap": {
+    "js": "node"
+  }
+}
