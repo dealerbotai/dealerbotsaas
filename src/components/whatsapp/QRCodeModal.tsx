@@ -3,49 +3,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
-import { Loader2, QrCode, CheckCircle2, WifiOff } from 'lucide-react';
-import { io } from 'socket.io-client';
+import { Loader2, QrCode, CheckCircle2, Info } from 'lucide-react';
+import { WhatsAppInstance } from '@/lib/api';
 
 interface QRCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (name: string) => Promise<any>;
-  onConnect: (id: string) => Promise<void>;
+  onAdd: (name: string) => Promise<WhatsAppInstance>;
+  instances: WhatsAppInstance[];
 }
 
-export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect }: QRCodeModalProps) => {
+export const QRCodeModal = ({ isOpen, onClose, onAdd, instances }: QRCodeModalProps) => {
   const [name, setName] = useState('');
   const [step, setStep] = useState<'input' | 'qr' | 'success'>('input');
   const [loading, setLoading] = useState(false);
   const [currentInstanceId, setCurrentInstanceId] = useState<string | null>(null);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [backendConnected, setBackendConnected] = useState(false);
+
+  const currentInstance = instances.find(i => i.id === currentInstanceId);
 
   useEffect(() => {
-    if (step === 'qr') {
-      // Conectar al servidor backend (ajusta la URL según tu servidor)
-      const socket = io('http://localhost:3000');
-
-      socket.on('connect', () => setBackendConnected(true));
-      socket.on('disconnect', () => setBackendConnected(false));
-
-      socket.on('qr', (qr) => {
-        // Generamos la URL de la imagen del QR a partir del texto recibido
-        setQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qr)}`);
-      });
-
-      socket.on('ready', async () => {
-        if (currentInstanceId) {
-          await onConnect(currentInstanceId);
-          setStep('success');
-        }
-      });
-
-      return () => {
-        socket.disconnect();
-      };
+    if (currentInstance?.status === 'connected') {
+      setStep('success');
     }
-  }, [step, currentInstanceId, onConnect]);
+  }, [currentInstance?.status]);
 
   const handleAdd = async () => {
     if (!name) return;
@@ -64,7 +44,6 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect }: QRCodeModalPr
   const handleClose = () => {
     setStep('input');
     setName('');
-    setQrCode(null);
     setCurrentInstanceId(null);
     onClose();
   };
@@ -108,26 +87,22 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect }: QRCodeModalPr
 
           {step === 'qr' && (
             <div className="flex flex-col items-center justify-center space-y-6">
-              {!backendConnected && (
-                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs font-bold">
-                  <WifiOff className="w-4 h-4" /> ESPERANDO CONEXIÓN CON EL SERVIDOR...
-                </div>
-              )}
               <div className="relative p-4 bg-white rounded-3xl shadow-inner border-4 border-primary/10">
-                {qrCode ? (
-                  <img src={qrCode} alt="WhatsApp QR Code" className="w-48 h-48" />
+                {currentInstance?.qr_code ? (
+                  <img src={currentInstance.qr_code} alt="WhatsApp QR Code" className="w-48 h-48" />
                 ) : (
-                  <div className="w-48 h-48 flex items-center justify-center bg-muted rounded-2xl">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <div className="w-48 h-48 flex flex-col items-center justify-center bg-muted rounded-2xl p-4 text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Generando QR en el servidor...</p>
                   </div>
                 )}
               </div>
-              <div className="bg-accent/50 p-4 rounded-2xl border border-border/50 w-full">
-                <ol className="text-sm space-y-2 font-medium text-muted-foreground">
-                  <li className="flex gap-2"><span className="text-primary font-bold">1.</span> Abre WhatsApp en tu teléfono</li>
-                  <li className="flex gap-2"><span className="text-primary font-bold">2.</span> Toca Menú o Ajustes y selecciona Dispositivos Vinculados</li>
-                  <li className="flex gap-2"><span className="text-primary font-bold">3.</span> Apunta tu teléfono a esta pantalla para capturar el código</li>
-                </ol>
+              
+              <div className="bg-blue-500/5 p-4 rounded-2xl border border-blue-500/10 w-full flex gap-3">
+                <Info className="w-5 h-5 text-blue-500 shrink-0" />
+                <p className="text-xs font-medium text-blue-700 leading-relaxed">
+                  Asegúrate de tener el backend ejecutándose en tu máquina local para que el QR aparezca aquí.
+                </p>
               </div>
             </div>
           )}
