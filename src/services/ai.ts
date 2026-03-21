@@ -1,13 +1,18 @@
 "use client";
 
 export const generateAIResponse = async (apiKey: string, prompt: string, context: string) => {
-  if (!apiKey) throw new Error("No se ha configurado la clave API de Groq");
+  // Usar la clave pasada por parámetro o la de los secrets (VITE_GROK_KEY)
+  const finalKey = apiKey || import.meta.env.VITE_GROK_KEY;
+  
+  if (!finalKey) {
+    throw new Error("No se ha configurado la clave API de Groq (VITE_GROK_KEY)");
+  }
 
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        "Authorization": `Bearer ${finalKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -33,6 +38,11 @@ export const generateAIResponse = async (apiKey: string, prompt: string, context
         max_tokens: 150,
       }),
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || "Error en la API de Groq");
+    }
 
     const data = await response.json();
     return data.choices[0].message.content;
