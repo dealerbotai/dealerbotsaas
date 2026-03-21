@@ -59,8 +59,11 @@ const Settings = () => {
 
           <TabsContent value="scraper" className="outline-none">
             <div className="max-w-4xl">
-              <ScraperSection                 url={settings.ecommerce_url}                 scrapedData={settings.scraped_data} 
-                onScrape={scrapeUrl}                 loading={scraping} 
+              <ScraperSection 
+                url={settings.ecommerce_url} 
+                scrapedData={settings.scraped_data} 
+                onScrape={scrapeUrl} 
+                loading={scraping} 
               />
             </div>
           </TabsContent>
@@ -82,7 +85,7 @@ const Settings = () => {
                       <h4 className="font-bold">{item.title}</h4>
                       <p className="text-sm text-muted-foreground font-medium">{item.desc}</p>
                     </div>
-                  }
+                  </div>
                 ))}
               </div>
             </div>
