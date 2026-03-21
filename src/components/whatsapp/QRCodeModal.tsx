@@ -3,68 +3,59 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
-import { Loader2, QrCode, CheckCircle2, Info } from 'lucide-react';
-import { WhatsAppInstance } from '@/lib/mock-api';
+import { Loader2, QrCode, CheckCircle2, Info, AlertCircle } from 'lucide-react';
 import { Socket } from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface QRCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (name: string) => Promise<WhatsAppInstance>;
-  onConnect: (id: string) => Promise<void>;
+  onStartLinking: (name: string) => void;
   socket: Socket | null;
+  onSuccess: () => void;
 }
 
-export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect, socket }: QRCodeModalProps) => {
+export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess }: QRCodeModalProps) => {
   const [name, setName] = useState('');
   const [step, setStep] = useState<'input' | 'qr' | 'success'>('input');
-  const [loading, setLoading] = useState(false);
-  const [currentInstanceId, setCurrentInstanceId] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('qr', (data: { instanceId: string, qr: string }) => {
-      if (data.instanceId === currentInstanceId) {
-        setQrCode(data.qr);
-        setStep('qr');
-      }
+    socket.on('qr', (data: { qr: string }) => {
+      setQrCode(data.qr);
+      setStep('qr');
     });
 
-    socket.on('ready', async (data: { instanceId: string }) => {
-      if (data.instanceId === currentInstanceId) {
-        await onConnect(data.instanceId);
-        setStep('success');
-      }
+    socket.on('ready', () => {
+      setStep('success');
+      onSuccess(); // Refrescar la lista de instancias
+    });
+
+    socket.on('error', (data: { message: string }) => {
+      setError(data.message);
     });
 
     return () => {
       socket.off('qr');
       socket.off('ready');
+      socket.off('error');
     };
-  }, [socket, currentInstanceId, onConnect]);
+  }, [socket, onSuccess]);
 
-  const handleAdd = async () => {
+  const handleStart = () => {
     if (!name) return;
-    setLoading(true);
-    try {
-      const instance = await onAdd(name);
-      setCurrentInstanceId(instance.id);
-      // El hook useWhatsApp ya emite 'init-instance' al socket
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+    setError(null);
+    onStartLinking(name);
   };
 
   const handleClose = () => {
     setStep('input');
     setName('');
-    setCurrentInstanceId(null);
     setQrCode(null);
+    setError(null);
     onClose();
   };
 
@@ -78,15 +69,10 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect, socket }: QRCod
             {step === 'success' && <CheckCircle2 className="w-8 h-8 text-green-500" />}
           </div>
           <DialogTitle className="text-2xl font-bold text-center tracking-tight">
-            {step === 'input' && 'Añadir Nueva Instancia'}
-            {step === 'qr' && 'Escanear Código QR'}
-            {step === 'success' && '¡Instancia Vinculada!'}
+            {step === 'input' && 'Vincular Nuevo WhatsApp'}
+            {step === 'qr' && 'Escanea el Código QR'}
+            {step === 'success' && '¡Vinculación Exitosa!'}
           </DialogTitle>
-          <DialogDescription className="text-center text-muted-foreground font-medium">
-            {step === 'input' && 'Dale un nombre a tu instancia de WhatsApp para comenzar.'}
-            {step === 'qr' && 'Abre WhatsApp en tu teléfono y escanea el código de abajo.'}
-            {step === 'success' && 'Tu cuenta de WhatsApp se ha vinculado correctamente.'}
-          </DialogDescription>
         </DialogHeader>
 
         <div className="py-6">
@@ -96,16 +82,21 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect, socket }: QRCod
                 <Label htmlFor="name" className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Nombre de la Instancia</Label>
                 <Input
                   id="name"
-                  placeholder="ej. Bot de Ventas - Principal"
+                  placeholder="ej. Ventas México"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="h-12 rounded-xl border-border/50 focus:ring-primary/20"
+                  className="h-12 rounded-xl"
                 />
               </div>
+              {error && (
+                <div className="p-3 bg-destructive/10 text-destructive rounded-xl flex gap-2 text-sm font-medium">
+                  <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+                </div>
+              )}
             </div>
           )}
 
-          {step === 'qr' || (step === 'input' && loading) ? (
+          {step === 'qr' && (
             <div className="flex flex-col items-center justify-center space-y-6">
               <div className="relative p-4 bg-white rounded-3xl shadow-inner border-4 border-primary/10">
                 {qrCode ? (
@@ -113,48 +104,40 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, onConnect, socket }: QRCod
                 ) : (
                   <div className="w-48 h-48 flex flex-col items-center justify-center bg-muted rounded-2xl p-4 text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Generando QR en el servidor...</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Generando QR...</p>
                   </div>
                 )}
               </div>
-              
-              <div className="bg-blue-500/5 p-4 rounded-2xl border border-blue-500/10 w-full flex gap-3">
-                <Info className="w-5 h-5 text-blue-500 shrink-0" />
-                <p className="text-xs font-medium text-blue-700 leading-relaxed">
-                  Asegúrate de que el servidor en la carpeta `/server` esté corriendo para generar el código.
-                </p>
-              </div>
+              <p className="text-sm text-center text-muted-foreground font-medium">
+                Abre WhatsApp > Dispositivos vinculados > Vincular un dispositivo
+              </p>
             </div>
-          ) : null}
+          )}
 
           {step === 'success' && (
             <div className="flex flex-col items-center justify-center py-4">
               <div className="bg-green-500/10 p-6 rounded-full mb-4">
                 <CheckCircle2 className="w-12 h-12 text-green-500" />
               </div>
-              <p className="text-lg font-bold text-center">¡Listo para automatizar!</p>
+              <p className="text-lg font-bold text-center">La instancia se ha guardado y está lista.</p>
             </div>
           )}
         </div>
 
         <DialogFooter className="sm:justify-center gap-3">
           {step === 'input' && (
-            <>
-              <Button variant="ghost" onClick={handleClose} className="rounded-xl font-bold h-12 px-8">Cancelar</Button>
-              <Button onClick={handleAdd} disabled={!name || loading} className="rounded-xl font-bold h-12 px-8 min-w-[140px]">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Generar QR
-              </Button>
-            </>
+            <Button onClick={handleStart} disabled={!name} className="rounded-xl font-bold h-12 px-8 w-full">
+              Generar Código QR
+            </Button>
           )}
           {step === 'qr' && (
-            <Button variant="outline" onClick={handleClose} className="rounded-xl font-bold h-12 px-8">
+            <Button variant="outline" onClick={handleClose} className="rounded-xl font-bold h-12 px-8 w-full">
               Cancelar
             </Button>
           )}
           {step === 'success' && (
-            <Button onClick={handleClose} className="rounded-xl font-bold h-12 px-12">
-              Ir al Panel
+            <Button onClick={handleClose} className="rounded-xl font-bold h-12 px-12 w-full">
+              Finalizar
             </Button>
           )}
         </DialogFooter>

@@ -10,12 +10,12 @@ import { Plus, Users, MessageSquare, Zap, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Dashboard = () => {
-  const { instances, loading, toggleBot, deleteInstance, addInstance, connectInstance } = useWhatsApp();
+  const { instances, loading, toggleBot, deleteInstance, startLinking, socket, refresh } = useWhatsApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const stats = [
     { label: 'Total de Instancias', value: instances.length, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: 'Bots Activos', value: instances.filter(i => i.botEnabled).length, icon: Zap, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+    { label: 'Bots Activos', value: instances.filter(i => i.bot_enabled).length, icon: Zap, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
     { label: 'Conectados', value: instances.filter(i => i.status === 'connected').length, icon: Activity, color: 'text-green-500', bg: 'bg-green-500/10' },
     { label: 'Mensajes Hoy', value: '1,284', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-500/10' },
   ];
@@ -92,7 +92,7 @@ const Dashboard = () => {
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold">No se encontraron instancias</h3>
                 <p className="text-muted-foreground max-w-md mx-auto font-medium">
-                  Comienza vinculando tu primera cuenta de WhatsApp. Puedes gestionar múltiples cuentas desde un solo lugar.
+                  Comienza vinculando tu primera cuenta de WhatsApp.
                 </p>
               </div>
               <Button onClick={() => setIsModalOpen(true)} variant="outline" className="rounded-2xl h-12 px-8 font-bold border-primary/20 text-primary hover:bg-primary/5">
@@ -106,8 +106,9 @@ const Dashboard = () => {
       <QRCodeModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onAdd={addInstance}
-        onConnect={connectInstance}
+        onStartLinking={startLinking}
+        socket={socket}
+        onSuccess={refresh}
       />
     </MainLayout>
   );

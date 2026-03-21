@@ -10,33 +10,26 @@ export const useWhatsApp = () => {
   const [scraping, setScraping] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
 
-  // URL del backend independiente (configurable)
   const BACKEND_URL = "http://localhost:3001";
 
   useEffect(() => {
     const newSocket = io(BACKEND_URL);
     setSocket(newSocket);
-    return () => {
-      newSocket.close();
-    };
+    return () => { newSocket.close(); };
   }, []);
 
   const fetchInstances = useCallback(async () => {
     try {
       const data = await mockApi.getInstances();
       setInstances(data);
-    } catch (error) {
-      console.error(error);
-    }
+    } catch (error) { console.error(error); }
   }, []);
 
   const fetchSettings = useCallback(async () => {
     try {
       const data = await mockApi.getSettings();
       setSettings(data);
-    } catch (error) {
-      console.error(error);
-    }
+    } catch (error) { console.error(error); }
   }, []);
 
   useEffect(() => {
@@ -48,31 +41,10 @@ export const useWhatsApp = () => {
     init();
   }, [fetchInstances, fetchSettings]);
 
-  const addInstance = async (name: string) => {
-    try {
-      const newInstance = await mockApi.addInstance(name);
-      setInstances((prev) => [newInstance, ...prev]);
-      
-      // Notificar al backend para que empiece a generar el QR
-      if (socket) {
-        socket.emit('init-instance', newInstance.id);
-      }
-      
-      toast.success('Instancia creada. Esperando QR...');
-      return newInstance;
-    } catch (error) {
-      toast.error('Error al añadir la instancia');
-      throw error;
-    }
-  };
-
-  const connectInstance = async (id: string) => {
-    try {
-      await mockApi.connectInstance(id);
-      await fetchInstances();
-      toast.success('WhatsApp vinculado correctamente');
-    } catch (error) {
-      toast.error('Error al vincular WhatsApp');
+  const startLinking = (name: string) => {
+    if (socket) {
+      socket.emit('init-instance', { name });
+      toast.info('Generando código QR...');
     }
   };
 
@@ -83,9 +55,7 @@ export const useWhatsApp = () => {
         prev.map((inst) => (inst.id === id ? { ...inst, bot_enabled: enabled } : inst))
       );
       toast.success(`Bot ${enabled ? 'activado' : 'desactivado'}`);
-    } catch (error) {
-      toast.error('Error al cambiar el estado del bot');
-    }
+    } catch (error) { toast.error('Error al cambiar estado'); }
   };
 
   const deleteInstance = async (id: string) => {
@@ -93,9 +63,7 @@ export const useWhatsApp = () => {
       await mockApi.deleteInstance(id);
       setInstances((prev) => prev.filter((inst) => inst.id !== id));
       toast.success('Instancia eliminada');
-    } catch (error) {
-      toast.error('Error al eliminar la instancia');
-    }
+    } catch (error) { toast.error('Error al eliminar'); }
   };
 
   const updateSettings = async (newSettings: Partial<GlobalSettings>) => {
@@ -103,9 +71,7 @@ export const useWhatsApp = () => {
       const updated = await mockApi.updateSettings(newSettings);
       setSettings(updated);
       toast.success('Configuración actualizada');
-    } catch (error) {
-      toast.error('Error al actualizar la configuración');
-    }
+    } catch (error) { toast.error('Error al actualizar'); }
   };
 
   const scrapeUrl = async (url: string) => {
@@ -113,13 +79,10 @@ export const useWhatsApp = () => {
     try {
       const data = await mockApi.scrapeUrl(url);
       setSettings((prev) => ({ ...prev, ecommerce_url: url, scraped_data: data }));
-      toast.success('URL escaneada con éxito');
+      toast.success('URL escaneada');
       return data;
-    } catch (error) {
-      toast.error('Error al escanear la URL');
-    } finally {
-      setScraping(false);
-    }
+    } catch (error) { toast.error('Error al escanear'); }
+    finally { setScraping(false); }
   };
 
   return {
@@ -128,8 +91,7 @@ export const useWhatsApp = () => {
     loading,
     scraping,
     socket,
-    addInstance,
-    connectInstance,
+    startLinking,
     toggleBot,
     deleteInstance,
     updateSettings,
