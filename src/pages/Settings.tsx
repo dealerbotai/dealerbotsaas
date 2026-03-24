@@ -2,14 +2,14 @@
 
 import React from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
+import { useGlobalSettings } from '@/hooks/use-global-settings';
 import { GroqConfig } from '@/components/settings/GroqConfig';
 import { ScraperSection } from '@/components/settings/ScraperSection';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings as SettingsIcon, Globe, Key, ShieldCheck } from 'lucide-react';
 
 const Settings = () => {
-  const { settings, updateSettings, scrapeUrl, scraping } = useWhatsApp();
+  const { settings, updateSettings, scrapeUrl, scraping } = useGlobalSettings();
 
   return (
     <MainLayout>
@@ -35,7 +35,16 @@ const Settings = () => {
           <TabsContent value="general" className="space-y-8 outline-none">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <GroqConfig 
-                apiKey={settings.groq_api_key}                 onSave={(key) => updateSettings({ groq_api_key: key })}               />
+                apiKey={settings.groq_api_key_encrypted ? '********' : ''}
+                personality={settings.global_personality}
+                onSave={({ apiKey, personality }) => {
+                  const updates: any = { global_personality: personality };
+                  if (apiKey && apiKey !== '********') {
+                    updates.groq_api_key = apiKey;
+                  }
+                  updateSettings(updates);
+                }}
+              />
               
               <div className="bg-primary/5 rounded-[32px] p-8 border border-primary/10 flex flex-col justify-center">
                 <div className="bg-primary/10 w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
@@ -63,6 +72,7 @@ const Settings = () => {
                 url={settings.ecommerce_url} 
                 scrapedData={settings.scraped_data} 
                 onScrape={scrapeUrl} 
+                onUpdateSettings={updateSettings}
                 loading={scraping} 
               />
             </div>

@@ -1,27 +1,30 @@
-"use client";
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Key, Save, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Key, Save, Eye, EyeOff, CheckCircle2, Sparkles } from 'lucide-react';
 
 interface GroqConfigProps {
   apiKey: string;
-  onSave: (key: string) => void;
+  personality?: string;
+  onSave: (data: { apiKey: string; personality: string }) => void;
 }
 
-export const GroqConfig = ({ apiKey, onSave }: GroqConfigProps) => {
-  const [value, setValue] = useState(apiKey);
+export const GroqConfig = ({ apiKey, personality = '', onSave }: GroqConfigProps) => {
+  const [localApiKey, setLocalApiKey] = useState(apiKey || '');
+  const [localPersonality, setLocalPersonality] = useState(personality || '');
   const [showKey, setShowKey] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
   const handleSave = () => {
-    onSave(value);
+    onSave({ apiKey: localApiKey, personality: localPersonality });
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
   };
+  
+  const hasChanges = localApiKey !== apiKey || localPersonality !== personality;
 
   return (
     <Card className="rounded-3xl border-border/50 shadow-sm overflow-hidden">
@@ -33,21 +36,21 @@ export const GroqConfig = ({ apiKey, onSave }: GroqConfigProps) => {
           <CardTitle className="text-xl font-bold">Configuración de Groq AI</CardTitle>
         </div>
         <CardDescription className="text-muted-foreground font-medium">
-          Introduce tu clave API de Groq para potenciar el bot de ventas. Tu clave se guarda localmente y nunca se comparte.
+          Define la clave API y la personalidad de tu asistente de ventas.
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-8 space-y-6">
         <div className="space-y-2">
           <Label htmlFor="api-key" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Clave API
+            Clave API de Groq
           </Label>
           <div className="relative">
             <Input
               id="api-key"
               type={showKey ? 'text' : 'password'}
               placeholder="gsk_..."
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
+              value={localApiKey}
+              onChange={(e) => setLocalApiKey(e.target.value)}
               className="h-12 rounded-xl pr-12 border-border/50 focus:ring-primary/20 font-mono"
             />
             <Button
@@ -61,10 +64,23 @@ export const GroqConfig = ({ apiKey, onSave }: GroqConfigProps) => {
           </div>
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="personality" className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <Sparkles className="w-3 h-3" /> Personalidad del Asistente
+          </Label>
+          <Textarea
+            id="personality"
+            placeholder="Eres un asistente de ventas amigable y servicial. Tu objetivo es ayudar a los clientes a encontrar el producto perfecto..."
+            value={localPersonality}
+            onChange={(e) => setLocalPersonality(e.target.value)}
+            className="rounded-xl border-border/50 focus:ring-primary/20 min-h-[120px]"
+          />
+        </div>
+
         <Button 
           onClick={handleSave} 
           className="w-full h-12 rounded-xl font-bold gap-2 transition-all duration-300"
-          disabled={!value || value === apiKey}
+          disabled={!localApiKey || !hasChanges}
         >
           {isSaved ? (
             <>

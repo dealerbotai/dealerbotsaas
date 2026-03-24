@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
-import { Loader2, QrCode, CheckCircle2, Info, AlertCircle } from 'lucide-react';
+import { Loader2, QrCode, CheckCircle2, Info, AlertCircle, RefreshCw } from 'lucide-react';
 import { Socket } from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
+import { cn } from '@/lib/utils';
 
 interface QRCodeModalProps {
   isOpen: boolean;
@@ -13,29 +14,48 @@ interface QRCodeModalProps {
   onStartLinking: (name: string) => void;
   socket: Socket | null;
   onSuccess: () => void;
+  instanceId?: string;
 }
 
-export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess }: QRCodeModalProps) => {
+export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess, instanceId }: QRCodeModalProps) => {
   const [name, setName] = useState('');
   const [step, setStep] = useState<'input' | 'qr' | 'success'>('input');
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(socket?.connected || false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && instanceId) {
+      setStep('qr');
+    }
+  }, [isOpen, instanceId]);
 
   useEffect(() => {
     if (!socket) return;
 
+    const onConnect = () => setIsConnected(true);
+    const onDisconnect = () => setIsConnected(false);
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+
     const handleQr = (data: { qr: string }) => {
+      console.log('QR RECIBIDO EN FRONTEND');
       setQrCode(data.qr);
       setStep('qr');
+      setIsRefreshing(false);
     };
 
     const handleReady = () => {
       setStep('success');
       onSuccess(); // Refrescar la lista de instancias
+      setIsRefreshing(false);
     };
 
     const handleError = (data: { message: string }) => {
       setError(data.message);
+      setIsRefreshing(false);
     };
 
     socket.on('qr', handleQr);
@@ -43,6 +63,8 @@ export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess
     socket.on('error', handleError);
 
     return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
       socket.off('qr', handleQr);
       socket.off('ready', handleReady);
       socket.off('error', handleError);
@@ -55,11 +77,20 @@ export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess
     onStartLinking(name);
   };
 
+  const handleRefreshQR = () => {
+    if (socket && instanceId) {
+      setIsRefreshing(true);
+      setQrCode(null);
+      socket.emit('restart-instance', { instanceId });
+    }
+  };
+
   const handleClose = () => {
     setStep('input');
     setName('');
     setQrCode(null);
     setError(null);
+    setIsRefreshing(false);
     onClose();
   };
 
@@ -74,9 +105,15 @@ export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess
           </div>
           <DialogTitle className="text-2xl font-bold text-center tracking-tight">
             {step === 'input' && 'Vincular Nuevo WhatsApp'}
-            {step === 'qr' && 'Escanea el Código QR'}
+            {step === 'qr' && (instanceId ? 'Renovar Sesión WhatsApp' : 'Escanea el Código QR')}
             {step === 'success' && '¡Vinculación Exitosa!'}
           </DialogTitle>
+          {!isConnected && (
+            <div className="flex items-center justify-center gap-1.5 py-1 px-3 bg-red-500/10 text-red-600 rounded-full w-fit mx-auto text-[10px] font-black uppercase tracking-widest border border-red-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              Servidor desconectado
+            </div>
+          )}
         </DialogHeader>
 
         <div className="py-6">
@@ -90,8 +127,15 @@ export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="h-12 rounded-xl"
+                  disabled={!isConnected}
                 />
               </div>
+              {!isConnected && (
+                <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl text-center space-y-2">
+                  <p className="text-sm font-bold text-red-600">No se pudo conectar con el servidor</p>
+                  <p className="text-xs text-muted-foreground">Asegúrate de que el servidor esté encendido (`npm start` en la carpeta /server)</p>
+                </div>
+              )}
               {error && (
                 <div className="p-3 bg-destructive/10 text-destructive rounded-xl flex gap-2 text-sm font-medium">
                   <AlertCircle className="w-4 h-4 shrink-0" /> {error}
@@ -103,18 +147,36 @@ export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess
           {step === 'qr' && (
             <div className="flex flex-col items-center justify-center space-y-6">
               <div className="relative p-4 bg-white rounded-3xl shadow-inner border-4 border-primary/10">
-                {qrCode ? (
+                {qrCode && !isRefreshing ? (
                   <QRCodeSVG value={qrCode} size={200} />
                 ) : (
                   <div className="w-48 h-48 flex flex-col items-center justify-center bg-muted rounded-2xl p-4 text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Generando QR...</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">
+                      {isRefreshing ? 'Actualizando...' : 'Generando QR...'}
+                    </p>
                   </div>
                 )}
               </div>
-              <p className="text-sm text-center text-muted-foreground font-medium">
-                Abre WhatsApp {'>'} Dispositivos vinculados {'>'} Vincular un dispositivo
-              </p>
+              
+              <div className="flex flex-col items-center gap-4 w-full">
+                <p className="text-sm text-center text-muted-foreground font-medium">
+                  Abre WhatsApp {'>'} Dispositivos vinculados {'>'} Vincular un dispositivo
+                </p>
+                
+                {instanceId && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefreshQR}
+                    disabled={isRefreshing}
+                    className="text-[10px] font-black uppercase tracking-widest gap-2 hover:bg-primary/5 rounded-full px-4"
+                  >
+                    <RefreshCw className={cn("w-3 h-3", isRefreshing && "animate-spin")} />
+                    Actualizar Código QR
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
@@ -130,8 +192,8 @@ export const QRCodeModal = ({ isOpen, onClose, onStartLinking, socket, onSuccess
 
         <DialogFooter className="sm:justify-center gap-3">
           {step === 'input' && (
-            <Button onClick={handleStart} disabled={!name} className="rounded-xl font-bold h-12 px-8 w-full">
-              Generar Código QR
+            <Button onClick={handleStart} disabled={!name || !isConnected} className="rounded-xl font-bold h-12 px-8 w-full">
+              {isConnected ? 'Generar Código QR' : 'Esperando servidor...'}
             </Button>
           )}
           {step === 'qr' && (
