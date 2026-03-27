@@ -24,6 +24,12 @@ export const useInstances = () => {
         queryClient.invalidateQueries({ queryKey: ['instances'] });
       });
 
+      newSocket.on('instance-status-update', ({ instanceId, status }) => {
+        queryClient.setQueryData(['instances'], (old: WhatsAppInstance[] | undefined) => 
+          old?.map(inst => inst.id === instanceId ? { ...inst, status } : inst)
+        );
+      });
+
       newSocket.on('scope-changed', () => {
         queryClient.invalidateQueries({ queryKey: ['instances'] });
       });

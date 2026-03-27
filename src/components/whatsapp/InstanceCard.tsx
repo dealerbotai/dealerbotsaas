@@ -38,7 +38,7 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete, onRestart }: Ins
   };
 
   return (
-    <Card className="nexus-card group relative overflow-hidden border-white/5 hover:border-amber-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/5 rounded-3xl p-1">
+    <Card className="dealerbot-card group relative overflow-hidden border-white/5 hover:border-amber-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/5 rounded-3xl p-1">
       <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
       
       <CardHeader className="flex flex-row items-center justify-between pb-4 relative z-10">

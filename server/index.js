@@ -1,28 +1,33 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const express = require('express');
-const http = require('http');
-const socketIO = require('socket.io');
-const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
-const { v4: uuidv4 } = require('uuid');
-const path = require('path');
-const { Worker } = require('worker_threads');
-const fs = require('fs');
-const { execSync } = require('child_process');
+import express from 'express';
+import http from 'http';
+import { Server as SocketIO } from 'socket.io';
+import cors from 'cors';
+import { createClient } from '@supabase/supabase-js';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import { Worker } from 'worker_threads';
+import fs from 'fs';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import dotenv from 'dotenv';
+import { encrypt, decrypt } from './utils/crypto.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const envPath = path.join(__dirname, '../.env');
 
 if (fs.existsSync(envPath)) {
-  require('dotenv').config({ path: envPath });
+  dotenv.config({ path: envPath });
   console.log('✅ [SERVER] .env file loaded from:', envPath);
 } else {
   console.warn('⚠️ [SERVER] .env file NOT FOUND at:', envPath);
-  require('dotenv').config(); // Fallback to current dir
+  dotenv.config(); 
 }
 
-const { encrypt, decrypt } = require('./utils/crypto');
 
 // Configuración de Pino Logger
-const pino = require('pino');
+import pino from 'pino';
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
   transport: {
@@ -35,14 +40,50 @@ const logger = pino({
   },
 });
 
+
+const LOG_ICONS = {
+  info: 'ℹ️ ',
+  warn: '⚠️ ',
+  error: '❌ ',
+  debug: '🔍 ',
+  success: '✅ ',
+  system: '⚙️ ',
+  auth: '🔐 ',
+  scraper: '🌐 ',
+  ai: '🧠 ',
+  whatsapp: '📱 ',
+  database: '🗄️ ',
+  start: '🚀 '
+};
+
 // Función para loguear y opcionalmente enviar por socket
 function sysLog(level, msg, data = {}) {
-  logger[level](data, msg);
+  // Determine standard pino level safely
+  const safePinoLevels = ['info', 'warn', 'error', 'debug', 'trace', 'fatal'];
+  const pinoLevel = safePinoLevels.includes(level) ? level : 'info';
+
+  // Determine primary icon based on level or prefix in msg
+  let icon = LOG_ICONS[level] || '📝 ';
+  const upperMsg = msg.toUpperCase();
+
+  if (upperMsg.includes('[SYSTEM]')) icon = LOG_ICONS.system;
+  else if (upperMsg.includes('[AUTH]')) icon = LOG_ICONS.auth;
+  else if (upperMsg.includes('[SCRAPER]')) icon = LOG_ICONS.scraper;
+  else if (upperMsg.includes('[AI')) icon = LOG_ICONS.ai;
+  else if (upperMsg.includes('[WHATSAPP]')) icon = LOG_ICONS.whatsapp;
+  else if (upperMsg.includes('[DB]') || upperMsg.includes('[DATABASE]') || upperMsg.includes('[SETTINGS]')) icon = LOG_ICONS.database;
+
+  // Clean message if it already has an emoji at the start to avoid duplicates
+  const cleanedMsg = msg.replace(/^[\u0020-\u007F]/, '').trim();
+  const finalMsg = `${icon} ${msg}`; // Prefixed with icon
+
+  logger[pinoLevel](data, finalMsg);
+
   // Emitir evento de sistema a la UI para observabilidad total
-  if (io) {
+  if (io && io.emit) {
     io.emit('system-log', {
       level,
-      message: msg,
+      message: finalMsg,
       timestamp: new Date().toISOString(),
       ...data
     });
@@ -54,20 +95,33 @@ app.use(cors());
 app.use(express.json());
 
 const server = http.createServer(app);
-const io = socketIO(server, {
+const io = new SocketIO(server, {
   cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-// ... (supabase setup)
 
 // Configuración de Supabase desde variables de entorno
+// PRIORIDAD: SUPABASE_SERVICE_ROLE_KEY es crítica para el backend (Bypass RLS)
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+const PORT = process.env.PORT || 3001;
 
 if (!supabaseUrl || !supabaseKey) {
   sysLog('error', "[SYSTEM] ❌ Error: SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY no definidas.");
   process.exit(1);
 }
+
+// Log diagnóstico de configuración (sin mostrar la llave completa por seguridad)
+const projectRef = supabaseUrl.split('//')[1]?.split('.')[0] || 'unknown';
+const isServiceRole = supabaseKey.length > 200 && (JSON.parse(Buffer.from(supabaseKey.split('.')[1], 'base64').toString()).role === 'service_role');
+
+if (isServiceRole) {
+  sysLog('success', `[SYSTEM] 🔐 Cloud: Supabase [${projectRef}] - Llave SERVICE_ROLE detectada.`);
+} else {
+  sysLog('warn', `[SYSTEM] ⚠️ Cloud: Supabase [${projectRef}] - Llave ANON detectada. Se requerirán políticas RLS permisivas.`);
+}
+
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -78,7 +132,7 @@ async function getOrCreateWorkspace(client, userId, email) {
     .select('workspace_id')
     .eq('user_id', userId)
     .maybeSingle();
-  
+
   if (member) return member.workspace_id;
 
   const { data: workspace, error: wsError } = await client
@@ -86,9 +140,9 @@ async function getOrCreateWorkspace(client, userId, email) {
     .insert([{ name: `${email}'s Workspace`, owner_id: userId }])
     .select('id')
     .single();
-  
+
   if (wsError) {
-    console.error(`[SYSTEM] ❌ Error creating workspace for ${email}:`, wsError);
+    sysLog('error', `[DATABASE] Error al crear workspace para ${email}:`, wsError);
     throw wsError;
   }
 
@@ -121,159 +175,292 @@ async function authenticate(req, res, next) {
 
     const { data: { user }, error } = await userClient.auth.getUser();
     if (error || !user) throw new Error(error?.message || 'Token inválido');
-    
+
     req.user = user;
     req.supabase = userClient; // Guardamos el cliente para usarlo en la ruta
-    
+
     // Obtener el workspace_id asociado al usuario usando su cliente
     req.workspaceId = await getOrCreateWorkspace(userClient, user.id, user.email);
     next();
   } catch (error) {
-    sysLog('error', '[AUTH] ❌ Error de autenticación HTTP:', { error: error.message });
+    sysLog('error', '[AUTH] Error de autenticación HTTP:', { error: error.message });
     return res.status(401).json({ error: 'No autorizado: ' + error.message });
   }
+}
+
+// Helper para extraer productos de un HTML
+function scrapeProducts(html, url) {
+  const products = [];
+
+  // 1. Intentar buscar JSON-LD de tipo Product
+  const jsonLdRegex = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g;
+  let match;
+  while ((match = jsonLdRegex.exec(html)) !== null) {
+    try {
+      const json = JSON.parse(match[1]);
+      const items = Array.isArray(json) ? json : [json];
+      for (const item of items) {
+        if (item['@type'] === 'Product' || (item['@context']?.includes('schema.org') && item['name'])) {
+          products.push({
+            name: item.name,
+            price: item.offers?.price || item.offers?.[0]?.price || item.offers?.priceSpecification?.price || 'N/A',
+            description: item.description?.substring(0, 150) || 'Sin descripción'
+          });
+        }
+      }
+    } catch (e) { }
+  }
+
+  // 2. Meta Tags (OpenGraph)
+  if (products.length < 5) {
+    const ogTitle = html.match(/<meta property="og:title" content="(.*?)"/)?.[1];
+    const ogPrice = html.match(/<meta property="product:price:amount" content="(.*?)"/)?.[1] ||
+      html.match(/<meta property="og:price:amount" content="(.*?)"/)?.[1];
+    const ogDesc = html.match(/<meta property="og:description" content="(.*?)"/)?.[1];
+
+    if (ogTitle && !products.find(p => p.name === ogTitle)) {
+      products.push({
+        name: ogTitle,
+        price: ogPrice || 'Ver en tienda',
+        description: ogDesc?.substring(0, 150) || 'Sin descripción'
+      });
+    }
+  }
+
+  // 3. Heurística de precios si todo lo anterior es insuficiente
+  if (products.length === 0) {
+    const priceRegex = /\$\s?(\d+([.,]\d{2})?)/g;
+    const pricesFound = html.match(priceRegex);
+    if (pricesFound) {
+      const uniquePrices = [...new Set(pricesFound)].slice(0, 3);
+      uniquePrices.forEach((price, idx) => {
+        products.push({
+          name: `Producto detectado #${idx + 1}`,
+          price: price,
+          description: `Detectado automáticamente por patrón de precio.`
+        });
+      });
+    }
+  }
+
+  return products;
 }
 
 app.post('/scrape', authenticate, async (req, res) => {
   const { url } = req.body;
   const workspaceId = req.workspaceId;
-  sysLog('info', `[SCRAPER] 🌐 Solicitud para workspace: ${workspaceId} -> ${url}`);
+  sysLog('info', `[SCRAPER] Solicitud iniciada para: ${url}`, { workspaceId });
 
   try {
-    const response = await fetch(url);
-    const html = await response.text();
-    
-    // Heurística avanzada para extraer "productos" del HTML
-    const products = [];
-    
-    // 1. Intentar buscar JSON-LD de tipo Product (Más preciso)
-    const jsonLdRegex = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g;
-    let match;
-    while ((match = jsonLdRegex.exec(html)) !== null) {
-      try {
-        const json = JSON.parse(match[1]);
-        const items = Array.isArray(json) ? json : [json];
-        for (const item of items) {
-          if (item['@type'] === 'Product' || (item['@context']?.includes('schema.org') && item['name'])) {
-            products.push({
-              name: item.name,
-              price: item.offers?.price || item.offers?.[0]?.price || item.offers?.priceSpecification?.price || 'N/A',
-              description: item.description?.substring(0, 150) || 'Sin descripción'
-            });
-          }
+    let currentUrl = url;
+    let allProducts = [];
+    const visitedUrls = new Set();
+    let pagesProcessed = 0;
+    const MAX_PAGES = 3;
+
+    while (currentUrl && pagesProcessed < MAX_PAGES && !visitedUrls.has(currentUrl)) {
+      sysLog('info', `[SCRAPER] Procesando página ${pagesProcessed + 1}: ${currentUrl}`);
+      visitedUrls.add(currentUrl);
+
+      const response = await fetch(currentUrl);
+      const html = await response.text();
+
+      // Extraer productos de esta página
+      const pageProducts = scrapeProducts(html, currentUrl);
+      allProducts = [...allProducts, ...pageProducts];
+
+      // Buscar siguiente página (Heurística)
+      let nextUrl = null;
+      const nextMatch = html.match(/href="([^"]*(?:next|siguiente|page=\d+)[^"]*)"/i);
+      if (nextMatch) {
+        nextUrl = nextMatch[1];
+        if (nextUrl.startsWith('/')) {
+          const urlObj = new URL(url);
+          nextUrl = `${urlObj.protocol}//${urlObj.host}${nextUrl}`;
         }
-      } catch (e) {}
+      }
+
+      currentUrl = nextUrl;
+      pagesProcessed++;
+
+      // Si ya tenemos suficientes productos, paramos
+      if (allProducts.length >= 20) break;
     }
 
-    // 2. Si no hay suficiente JSON-LD, buscar en Meta Tags (OpenGraph / Twitter)
-    if (products.length < 3) {
-      const ogTitle = html.match(/<meta property="og:title" content="(.*?)"/)?.[1];
-      const ogPrice = html.match(/<meta property="product:price:amount" content="(.*?)"/)?.[1] || 
-                      html.match(/<meta property="og:price:amount" content="(.*?)"/)?.[1];
-      const ogDesc = html.match(/<meta property="og:description" content="(.*?)"/)?.[1];
-
-      if (ogTitle && !products.find(p => p.name === ogTitle)) {
-        products.push({
-          name: ogTitle,
-          price: ogPrice || 'Ver en tienda',
-          description: ogDesc?.substring(0, 150) || 'Sin descripción'
-        });
+    // 2. Escaneo profundo de links directos (si no hay suficientes productos)
+    if (allProducts.length < 5) {
+      const response = await fetch(url);
+      const html = await response.text();
+      const productLinks = [];
+      const linkRegex = /href="([^"]*\/products?\/[^"]*)"/g;
+      let linkMatch;
+      while ((linkMatch = linkRegex.exec(html)) !== null && productLinks.length < 5) {
+        let fullLink = linkMatch[1];
+        if (fullLink.startsWith('/')) {
+          const urlObj = new URL(url);
+          fullLink = `${urlObj.protocol}//${urlObj.host}${fullLink}`;
+        }
+        if (!productLinks.includes(fullLink)) productLinks.push(fullLink);
       }
-    }
 
-    // 3. Buscar enlaces de productos para escaneo recursivo
-    const productLinks = [];
-    const linkRegex = /href="([^"]*\/products\/[^"]*)"/g;
-    let linkMatch;
-    while ((linkMatch = linkRegex.exec(html)) !== null && productLinks.length < 5) {
-      let fullLink = linkMatch[1];
-      if (fullLink.startsWith('/')) {
-        const urlObj = new URL(url);
-        fullLink = `${urlObj.protocol}//${urlObj.host}${fullLink}`;
-      }
-      if (!productLinks.includes(fullLink)) {
-        productLinks.push(fullLink);
-      }
-    }
-
-    if (productLinks.length > 0) {
-      sysLog('info', `[SCRAPER] 🔗 Encontrados ${productLinks.length} enlaces de productos. Iniciando escaneo profundo...`);
       for (const link of productLinks) {
         try {
           const pResp = await fetch(link);
           const pHtml = await pResp.text();
-          
-          // Extraer nombre (OG Title es muy confiable en páginas de producto)
-          const name = pHtml.match(/<meta property="og:title" content="(.*?)"/)?.[1] || 
-                       pHtml.match(/<title>(.*?)<\/title>/)?.[1];
-          
-          // Extraer precio
-          const price = pHtml.match(/<meta property="product:price:amount" content="(.*?)"/)?.[1] ||
-                        pHtml.match(/<meta property="og:price:amount" content="(.*?)"/)?.[1] ||
-                        pHtml.match(/\$\s?(\d+([.,]\d{2})?)/)?.[0] || 'N/A';
-
-          if (name && !products.find(p => p.name === name)) {
-            products.push({
-              name: name.split(/[|-]/)[0].trim(),
-              price: price.includes('$') ? price : `$${price}`,
-              description: pHtml.match(/<meta property="og:description" content="(.*?)"/)?.[1]?.substring(0, 150) || 'Producto de calidad.'
-            });
-          }
-        } catch (e) {
-          sysLog('error', `[SCRAPER] ❌ Error escaneando link: ${link}`, { error: e.message });
-        }
+          const pData = scrapeProducts(pHtml, link);
+          allProducts = [...allProducts, ...pData];
+        } catch (e) { }
       }
     }
 
-    // 4. Búsqueda de patrones comunes en el body (Respaldo si no hubo links)
-    if (products.length === 0) {
-      // Intentar buscar elementos que parezcan precios ($ XX.XX)
-      const priceRegex = /\$\s?(\d+([.,]\d{2})?)/g;
-      const pricesFound = html.match(priceRegex);
-      const titleMatch = html.match(/<title>(.*?)<\/title>/);
-      const siteName = titleMatch ? titleMatch[1].split(/[|-]/)[0].trim() : 'Tienda';
-
-      if (pricesFound) {
-        // Tomar los primeros 3 precios únicos como "ofertas destacadas"
-        const uniquePrices = [...new Set(pricesFound)].slice(0, 3);
-        uniquePrices.forEach((price, idx) => {
-          products.push({
-            name: `Oferta destacada ${idx + 1} en ${siteName}`,
-            price: price,
-            description: `Producto detectado automáticamente en la página principal de ${siteName}.`
-          });
-        });
+    // 3. Deduplicación por nombre
+    const uniqueProducts = [];
+    const names = new Set();
+    for (const p of allProducts) {
+      const cleanName = p.name.trim().toLowerCase();
+      if (!names.has(cleanName)) {
+        names.add(cleanName);
+        uniqueProducts.push(p);
       }
-    }
-
-    // 4. Fallback final si todo falla
-    if (products.length === 0) {
-      const titleMatch = html.match(/<title>(.*?)<\/title>/);
-      const title = titleMatch ? titleMatch[1] : 'Tienda Online';
-      products.push({
-        name: `Catálogo General - ${title}`,
-        price: 'Consultar',
-        description: 'Información general de la tienda. El bot responderá consultas generales sobre el catálogo disponible.'
-      });
     }
 
     const scrapedData = {
       url,
-      products: products.slice(0, 10), // Limitamos a 10
+      products: uniqueProducts.slice(0, 30), // Aumentamos límite a 30
       lastScraped: new Date().toISOString(),
+      pagesProcessed
     };
 
-    // Actualizar en Supabase filtrando por workspace_id
-    await req.supabase.from('settings').update({ 
-      ecommerce_url: url, 
-      scraped_data: scrapedData 
+    sysLog('success', `[SCRAPER] Escaneo finalizado. ${uniqueProducts.length} productos encontrados en ${pagesProcessed} páginas.`);
+
+    // Importar productos a la tabla local
+    const productsToImport = uniqueProducts.map(p => ({
+      workspace_id: workspaceId,
+      name: p.name,
+      price: parseFloat(p.price.toString().replace(/[^0-9.]/g, '')) || 0,
+      description: p.description,
+      is_active: true
+    }));
+
+    if (productsToImport.length > 0) {
+      const { error: importError } = await req.supabase
+        .from('products')
+        .upsert(productsToImport, { onConflict: 'workspace_id,name' });
+      
+      if (importError) {
+        sysLog('error', `[SCRAPER] Error al importar productos: ${importError.message}`);
+      } else {
+        sysLog('success', `[SCRAPER] ${productsToImport.length} productos importados a la base local.`);
+      }
+    }
+
+    await req.supabase.from('settings').update({
+      ecommerce_url: url,
+      scraped_data: scrapedData
     }).eq('workspace_id', workspaceId);
 
     res.json(scrapedData);
   } catch (error) {
-    sysLog('error', `[SCRAPER] ❌ Error:`, { error: error.message });
+    sysLog('error', `[SCRAPER] Error crítico:`, { error: error.message });
     res.status(500).json({ error: 'Error al escanear la URL: ' + error.message });
   }
+});
+
+// --- CRUD PRODUCTOS ---
+app.get('/products', authenticate, async (req, res) => {
+  const { data, error } = await req.supabase
+    .from('products')
+    .select('*')
+    .eq('workspace_id', req.workspaceId)
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.post('/products', authenticate, async (req, res) => {
+  const { data, error } = await req.supabase
+    .from('products')
+    .insert([{ ...req.body, workspace_id: req.workspaceId }])
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.put('/products/:id', authenticate, async (req, res) => {
+  const { data, error } = await req.supabase
+    .from('products')
+    .update(req.body)
+    .eq('id', req.params.id)
+    .eq('workspace_id', req.workspaceId)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.delete('/products/:id', authenticate, async (req, res) => {
+  const { error } = await req.supabase
+    .from('products')
+    .delete()
+    .eq('id', req.params.id)
+    .eq('workspace_id', req.workspaceId);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// --- CRUD REPARTIDORES ---
+app.get('/delivery', authenticate, async (req, res) => {
+  const { data, error } = await req.supabase
+    .from('delivery_personnel')
+    .select('*')
+    .eq('workspace_id', req.workspaceId)
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.post('/delivery', authenticate, async (req, res) => {
+  const { data, error } = await req.supabase
+    .from('delivery_personnel')
+    .insert([{ ...req.body, workspace_id: req.workspaceId }])
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.put('/delivery/:id', authenticate, async (req, res) => {
+  const { data, error } = await req.supabase
+    .from('delivery_personnel')
+    .update(req.body)
+    .eq('id', req.params.id)
+    .eq('workspace_id', req.workspaceId)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.delete('/delivery/:id', authenticate, async (req, res) => {
+  const { error } = await req.supabase
+    .from('delivery_personnel')
+    .delete()
+    .eq('id', req.params.id)
+    .eq('workspace_id', req.workspaceId);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// --- CIERRES DE VENTAS ---
+app.get('/sales', authenticate, async (req, res) => {
+  const { data, error } = await req.supabase
+    .from('sales')
+    .select('*, instances(name)')
+    .eq('workspace_id', req.workspaceId)
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
 app.post('/settings', authenticate, async (req, res) => {
@@ -295,9 +482,10 @@ app.post('/settings', authenticate, async (req, res) => {
       .single();
 
     if (error) throw error;
+    sysLog('success', `[SETTINGS] Configuración actualizada para workspace: ${workspaceId}`);
     res.json(data);
   } catch (error) {
-    sysLog('error', `[SETTINGS] ❌ Error actualizando configuración:`, { error: error.message });
+    sysLog('error', `[SETTINGS] Error actualizando configuración:`, { error: error.message });
     res.status(500).json({ error: 'Error al actualizar la configuración' });
   }
 });
@@ -316,7 +504,7 @@ app.get('/settings', authenticate, async (req, res) => {
       console.error(`[SETTINGS] ❌ DB Error:`, error);
       return res.status(500).json({ error: 'Error de base de datos: ' + error.message });
     }
-    
+
     if (settings && settings.groq_api_key) {
       try {
         settings.groq_api_key = decrypt(settings.groq_api_key);
@@ -331,7 +519,7 @@ app.get('/settings', authenticate, async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3001;
+
 const clients = new Map();
 const workers = new Map();
 const startTime = Date.now();
@@ -366,12 +554,12 @@ async function getAIResponse(prompt, instanceId, originalMsg = null) {
       .single();
 
     if (instError || !instance) {
-      sysLog('error', `[AI-DEBUG] ❌ Error buscando instancia ${instanceId}`, { error: instError?.message });
+      sysLog('error', `[AI] Error buscando instancia ${instanceId}`, { error: instError?.message });
       return null;
     }
 
     // --- FILTROS DE ACTIVACIÓN ---
-    
+
     // Filtro 1: Bot apagado globalmente para esta instancia
     if (!instance.bot_enabled) {
       sysLog('info', `[AI-SKIP] Bot desactivado para "${instance.name}". Ignorando respuesta.`);
@@ -381,12 +569,12 @@ async function getAIResponse(prompt, instanceId, originalMsg = null) {
     // Filtro 2: Alcance (Scope)
     if (originalMsg) {
       const isGroup = originalMsg.from.endsWith('@g.us');
-      
+
       if (instance.scope === 'groups' && !isGroup) {
         sysLog('info', `[AI-SKIP] Alcance configurado solo para GRUPOS. Ignorando chat individual.`);
         return null;
       }
-      
+
       if (instance.scope === 'specific' && isGroup) {
         sysLog('info', `[AI-SKIP] Alcance configurado solo para CHATS INDIVIDUALES. Ignorando grupo.`);
         return null;
@@ -401,15 +589,23 @@ async function getAIResponse(prompt, instanceId, originalMsg = null) {
       .maybeSingle();
 
     if (settError || !settings || (!settings.groq_api_key && !process.env.GROQ_API_KEY)) {
-      sysLog('error', "[AI-DEBUG] ❌ Error: API Key de Groq no configurada para el usuario.");
+      sysLog('error', "[AI] Error: API Key de Groq no configurada para el usuario.");
       return null;
     }
 
     const groqKey = decrypt(settings.groq_api_key) || process.env.GROQ_API_KEY;
 
-    const context = settings.scraped_data 
-      ? JSON.stringify(settings.scraped_data.products) 
-      : "No hay información de productos disponible.";
+    // Obtener productos desde la tabla local
+    const { data: products } = await supabase
+      .from('products')
+      .select('name, price, description')
+      .eq('workspace_id', workspaceId)
+      .eq('is_active', true)
+      .limit(30);
+
+    const context = products && products.length > 0
+      ? JSON.stringify(products)
+      : "No hay información de productos disponible en este momento.";
 
     // Prioridad: Instancia -> Global -> Default
     const systemPrompt = instance.personality || settings.personality || `Eres un asistente de ventas experto para una tienda de ecommerce. 
@@ -421,8 +617,8 @@ async function getAIResponse(prompt, instanceId, originalMsg = null) {
       2. Si no sabes algo sobre un producto, invita al cliente a esperar a un humano.
       3. Mantén las respuestas cortas y directas para WhatsApp.`;
 
-    sysLog('info', `[AI-DEBUG] 🧠 Consultando a Groq (Contexto: ${settings.scraped_data ? 'OK' : 'VACÍO'})...`);
-    
+    sysLog('info', `[AI] Consultando a Groq (Contexto: ${products?.length || 0} productos)...`);
+
     // 3. Llamar a la API de Groq
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -454,235 +650,179 @@ async function getAIResponse(prompt, instanceId, originalMsg = null) {
 
     const data = await response.json();
     const duration = Date.now() - aiStart;
-    sysLog('info', `[AI-DEBUG] ✅ Respuesta generada exitosamente en ${duration}ms.`, { duration });
-    
-    io.emit('system-event', { 
-      type: 'ai-latency', 
-      instanceId, 
-      duration, 
-      timestamp: new Date().toISOString() 
+    sysLog('success', `[AI] Respuesta generada exitosamente en ${duration}ms.`, { duration });
+
+    io.emit('system-event', {
+      type: 'ai-latency',
+      instanceId,
+      duration,
+      timestamp: new Date().toISOString()
     });
 
     return data.choices[0].message.content;
 
   } catch (error) {
-    sysLog('error', "[AI-DEBUG] ❌ Error en getAIResponse:", { error: error.message });
+    sysLog('error', "[AI] Error en getAIResponse:", { error: error.message });
     return null;
   }
 }
 
 // Función para inicializar un cliente de WhatsApp mediante Worker Threads
 async function initWhatsAppClient(id, name, socket = null) {
-  // 1. Evitar duplicados: Si ya hay un worker para este ID, lo terminamos antes de iniciar uno nuevo
+  // 1. Evitar duplicados: Si ya hay un worker para este ID, NO lo reiniciamos
   if (workers.has(id)) {
-    sysLog('warn', `[SYSTEM] 🔄 Reiniciando Worker ya existente para: "${name}" (ID: ${id})`);
-    const oldWorker = workers.get(id);
-    try {
-      await oldWorker.terminate();
-    } catch (e) {}
-    workers.delete(id);
-    // Esperar un poco a que el thread se detenga realmente
-    await new Promise(r => setTimeout(r, 1000));
+    sysLog('info', `[SYSTEM] Re-usando worker activo para: "${name}" (ID: ${id})`);
+    if (socket) socket.join(id);
+    return;
   }
 
-  sysLog('info', `[SYSTEM] 🛠️  Iniciando Worker para: "${name}" (ID: ${id})`);
-  
-  // 2. Limpieza de procesos y archivos de bloqueo (LOCK) de Puppeteer
-  const sessionPath = path.join(__dirname, '.wwebjs_auth', `session-${id}`);
-  
-  // Función para matar procesos Chrome de forma agresiva
-  const killProcesses = () => {
-    if (process.platform === 'win32') {
-      try {
-        // Opción 1: PowerShell (más preciso con CommandLine)
-        // Buscamos procesos chrome.exe o chromium.exe que tengan el ID de sesión en su línea de comandos
-        const psCmd = `powershell "Get-CimInstance Win32_Process -Filter \\" (Name = 'chrome.exe' OR Name = 'chromium.exe') AND CommandLine LIKE '%session-${id}%'\\" | Stop-Process -Force"`;
-        execSync(psCmd, { stdio: 'ignore' });
-        
-        // Opción 2: Intentar liberar el archivo usando un comando de sistema si es posible (herramienta handle.exe no suele estar)
-        // Como alternativa, usamos taskkill genérico si el proceso sigue vivo (pero con cuidado de no matar otros chrome)
-        
-        sysLog('debug', `[SYSTEM] 🔫 Intento de eliminación de procesos Chrome para sesión: ${id}`);
-      } catch (e) {}
-    }
-  };
+  sysLog('info', `[SYSTEM] Preparando entorno para: "${name}" (ID: ${id})`);
 
-  killProcesses();
+  // Dealerbot AI (Baileys) - No requiere limpieza de procesos Chrome ni LOCK files
+  await supabase.from('instances').update({ status: 'initializing' }).eq('id', id);
+  if (io) io.to(id).emit('instance-status-update', { instanceId: id, status: 'initializing' });
 
-  const lockFiles = [
-    path.join(sessionPath, 'Default', 'LOCK'),
-    path.join(sessionPath, 'LOCK'),
-    path.join(sessionPath, 'SingletonLock'),
-    path.join(sessionPath, 'lockfile'),
-    path.join(sessionPath, 'Default', 'SingletonLock'),
-    path.join(sessionPath, 'Default', 'lockfile')
-  ];
+  // Un mínimo respiro para asegurar el desbloqueo del I/O (100ms)
+  await new Promise(resolve => setTimeout(resolve, 100));
 
-  // Reintento de eliminación de archivos de bloqueo
-  for (let i = 0; i < 4; i++) {
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    let allCleared = true;
-
-    lockFiles.forEach(lockFile => {
-      if (fs.existsSync(lockFile)) {
-        try {
-          fs.unlinkSync(lockFile);
-          sysLog('debug', `[SYSTEM] 🧹 Archivo de bloqueo eliminado: ${lockFile}`);
-        } catch (e) {
-          allCleared = false;
-          sysLog('warn', `[SYSTEM] ⚠️ Intento ${i+1}: No se pudo eliminar ${path.basename(lockFile)}: ${e.message}`);
-          
-          // Intentar renombrar como último recurso
-          try {
-            const backup = `${lockFile}.old_${Date.now()}`;
-            fs.renameSync(lockFile, backup);
-            sysLog('debug', `[SYSTEM] 🔄 Archivo de bloqueo renombrado: ${path.basename(backup)}`);
-            allCleared = true; // Si renombramos con éxito, ya no bloquea
-          } catch (e2) {}
-        }
-      }
-    });
-
-    if (allCleared) break;
-    if (i < 3) killProcesses(); // Re-intentar matar procesos si no se borraron los archivos
-  }
-
-  // Un último respiro antes de arrancar el worker
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  const worker = new Worker(path.join(__dirname, 'worker.js'), {
-    workerData: {
-      id,
-      name,
-      supabaseUrl,
-      supabaseKey
-    }
+  // Dealerbot AI (Baileys) - Worker iniciado
+  const worker = new Worker(path.join(__dirname, 'baileys-worker.js'), {
+    workerData: { id, name, supabaseUrl, supabaseKey }
   });
+
 
   worker.on('message', async (msg) => {
     switch (msg.type) {
       case 'qr':
-        sysLog('info', `[AUTH] 📱 QR Recibido para "${name}"`);
+
+        sysLog('info', `[WHATSAPP] 📱 QR Recibido para "${name}"`);
         // Actualizar estado en DB a qr_ready
-        supabase.from('instances').update({ status: 'qr_ready' }).eq('id', id).then(() => {});
-        if (socket) socket.emit('qr', { tempId: id, qr: msg.qr });
+        supabase.from('instances').update({ status: 'qr_ready' }).eq('id', id).then(() => { });
+        io.to(id).emit('instance-status-update', { instanceId: id, status: 'qr_ready' });
+        io.to(id).emit('qr', { tempId: id, qr: msg.qr });
+        break;
+      case 'loading_screen':
+        io.to(id).emit('instance-status-update', { instanceId: id, status: 'loading', progress: msg.percent });
         break;
       case 'ready':
-        sysLog('info', `[SYSTEM] 🚀 Ready: "${name}" (+${msg.phoneNumber})`);
-        // Asegurar que el estado esté en 'connected'
-        supabase.from('instances').update({ status: 'connected', phone_number: `+${msg.phoneNumber}` }).eq('id', id).then(() => {});
-        if (socket) {
+
+        sysLog('success', `[SYSTEM] WhatsApp conectado para "${name}" (+${msg.phoneNumber})`);
+        // Actualizar estado en DB con logging de error
+        const { error: readyError } = await supabase
+          .from('instances')
+          .update({ status: 'connected', phone_number: `+${msg.phoneNumber}` })
+          .eq('id', id);
+
+        if (readyError) {
+          sysLog('error', `[DATABASE] Error configurando estado "connected" en index.js:`, { error: readyError.message, code: readyError.code });
+        } else {
+          sysLog('success', `[DATABASE] Instancia "${name}" marcada como conecta en DB.`);
+          io.to(id).emit('instance-status-update', { instanceId: id, status: 'connected' });
           const { data } = await supabase.from('instances').select('*').eq('id', id).single();
-          socket.emit('ready', { instance: data });
+          io.to(id).emit('ready', { instance: data });
         }
         break;
       case 'expired':
-        sysLog('warn', `[AUTH] ⚠️ Sesión expirada para "${name}"`);
-        if (socket) {
-          socket.emit('session-expired', { instanceId: id, message: msg.message });
-        }
-        // Registrar evento para auditoría
+
+        sysLog('warn', `[WHATSAPP] ⚠️ Sesión expirada o cerrada para "${name}"`);
+        io.to(id).emit('session-expired', { instanceId: id, message: msg.message });
+        // Registrar evento para auditoría en la tabla messages (vía chat de sistema si es necesario)
         try {
-          await supabase.from('chat_logs').insert([{
-            instance_id: id,
-            type: 'system',
-            sender_name: 'System',
-            text: `Sesión expirada: ${msg.message || 'Desconectado'}`,
-            from_me: false,
-            contact_id: 'system'
-          }]);
-        } catch (e) {}
+          // Buscamos o creamos un chat de sistema para esta instancia
+          const { data: systemChat } = await supabase
+            .from('chats')
+            .upsert({
+              instance_id: id,
+              external_id: 'system',
+              customer_name: 'System',
+              status: 'closed'
+            }, { onConflict: 'instance_id,external_id' })
+            .select('id')
+            .single();
+
+          if (systemChat) {
+            await supabase.from('messages').insert([{
+              chat_id: systemChat.id,
+              sender_name: 'System',
+              content: `Sesión expirada: ${msg.message || 'Desconectado'}`,
+              from_me: false,
+              type: 'text'
+            }]);
+          }
+        } catch (e) { 
+          sysLog('error', '[DATABASE] Error guardando log de expiración:', { error: e.message });
+        }
+        break;
+      case 'status-update':
+        io.to(id).emit('instance-status-update', { instanceId: id, status: msg.status });
         break;
       case 'message':
-        const { message } = msg;
-        if (message.isMe) {
-          io.emit('message-update', { 
-            instanceId: id, 
-            message: { 
-              type: 'bot', user: 'Tú', text: message.body, 
-              time: 'Ahora', fromMe: true, to: message.to 
-            } 
+        {
+          const { message } = msg;
+          // El worker ya guarda el mensaje en la base de datos (ver worker.js:425)
+          // Aquí solo emitimos a la UI para feedback inmediato
+          io.emit('message-update', {
+            instanceId: id,
+            message: {
+              type: 'bot', user: 'Tú', text: message.body,
+              time: 'Ahora', fromMe: true, to: message.to
+            }
           });
-          // Guardar log manual saliente
-          try {
-            await supabase.from('chat_logs').insert([{
-              instance_id: id,
-              type: 'bot',
-              sender_name: 'Tú',
-              text: message.body,
-              from_me: true,
-              contact_id: message.to
-            }]);
-          } catch (e) {}
-        } else {
-          io.emit('message-update', { 
-            instanceId: id, 
-            message: { 
-              type: 'msg', user: message.pushname || message.from, 
-              text: message.body, time: 'Ahora', fromMe: false, from: message.from 
-            } 
+          io.emit('message-update', {
+            instanceId: id,
+            message: {
+              type: 'msg', user: message.pushname || message.from,
+              text: message.body, time: 'Ahora', fromMe: false, from: message.from
+            }
           });
           // Actualizar contador global
           try {
             const { data: curr } = await supabase.from('settings').select('id, total_messages').limit(1).maybeSingle();
             if (curr) await supabase.from('settings').update({ total_messages: (curr.total_messages || 0) + 1 }).eq('id', curr.id);
-          } catch (e) {}
+          } catch (e) { }
         }
         break;
       case 'bot-reply':
-        io.emit('message-update', { 
-          instanceId: id, 
-          message: { 
-            type: 'bot', user: 'SalesBot', text: msg.reply, 
-            time: 'Ahora', fromMe: true, to: msg.to 
-          } 
+
+        io.emit('message-update', {
+          instanceId: id,
+          message: {
+            type: 'bot', user: 'SalesBot', text: msg.reply,
+            time: 'Ahora', fromMe: true, to: msg.to
+          }
         });
         // Actualizar contador global
         try {
           const { data: curr } = await supabase.from('settings').select('id, total_messages').limit(1).maybeSingle();
           if (curr) await supabase.from('settings').update({ total_messages: (curr.total_messages || 0) + 1 }).eq('id', curr.id);
-        } catch (e) {}
+        } catch (e) { }
         break;
       case 'log':
         sysLog(msg.level, msg.msg, msg.data);
         break;
       case 'connectivity-result':
-        sysLog(msg.success ? 'info' : 'error', `[DIAG] Resultado de conectividad para "${name}": ${msg.success ? 'EXITOSO' : 'FALLIDO'}`, msg);
-        
+        sysLog(msg.success ? 'success' : 'error', `[WHATSAPP] Resultado de conectividad para "${name}": ${msg.success ? 'EXITOSO' : 'FALLIDO'}`, msg);
+
         if (!msg.success) {
-          // Si falla críticamente, marcar como expired para forzar re-vinculación
-          supabase.from('instances').update({ status: 'expired' }).eq('id', id).then(() => {});
+          supabase.from('instances').update({ status: 'expired' }).eq('id', id).then(() => { });
         }
 
-        if (socket) {
-          socket.emit('connectivity-test-result', { instanceId: id, ...msg });
-        }
-        // Registrar en logs de auditoría
-        try {
-          await supabase.from('chat_logs').insert([{
-            instance_id: id,
-            type: 'system',
-            sender_name: 'System Diagnostic',
-            text: `Prueba de conectividad: ${msg.success ? '✅ EXITOSA' : '❌ FALLIDA'} - ${msg.details || msg.error}`,
-            from_me: false,
-            contact_id: 'system'
-          }]);
-        } catch (e) {}
+        io.to(id).emit('connectivity-test-result', { instanceId: id, ...msg });
         break;
     }
   });
 
   worker.on('error', (err) => {
-    sysLog('error', `[WORKER] ❌ Error en "${name}":`, { error: err.message });
+    clearTimeout(initializationTimeout);
+    sysLog('error', `[WHATSAPP] Error en worker de "${name}":`, { error: err.message });
     if (socket) socket.emit('error', { message: 'Error en instancia: ' + err.message });
-    // Intentar marcar como desconectado en DB si falla críticamente
-    supabase.from('instances').update({ status: 'disconnected' }).eq('id', id).then(() => {});
+    supabase.from('instances').update({ status: 'disconnected' }).eq('id', id).then(() => { });
   });
 
   worker.on('exit', (code) => {
-    if (code !== 0) sysLog('error', `[WORKER] ❌ Worker "${name}" (ID: ${id}) salió con código ${code}`);
-    else sysLog('info', `[WORKER] ✅ Worker "${name}" (ID: ${id}) finalizado correctamente.`);
-    
+    if (code !== 0) sysLog('error', `[WHATSAPP] Worker "${name}" (ID: ${id}) salió con código ${code}`);
+    else sysLog('info', `[WHATSAPP] Worker "${name}" (ID: ${id}) finalizado correctamente.`);
+
     // Asegurar que se elimine del Map al salir
     if (workers.get(id) === worker) {
       workers.delete(id);
@@ -695,14 +835,14 @@ async function initWhatsAppClient(id, name, socket = null) {
 
 // Inicializar instancias existentes al arrancar
 async function loadExistingInstances() {
-  sysLog('info', '[server] Cargando instancias existentes...');
+  sysLog('info', '[SYSTEM] Cargando instancias persistentes...');
   const { data, error } = await supabase
     .from('instances')
     .select('*')
     .eq('status', 'connected');
 
   if (error) {
-    sysLog('error', '[server] Error al cargar instancias:', { error });
+    sysLog('error', '[SYSTEM] Error al recargar flota de instancias:', { error });
     return;
   }
 
@@ -710,12 +850,19 @@ async function loadExistingInstances() {
     try {
       await initWhatsAppClient(inst.id, inst.name);
     } catch (e) {
-      sysLog('error', `[server] Falló al recargar instancia ${inst.name}:`, { error: e.message });
+      sysLog('error', `[SYSTEM] Falló al recargar instancia "${inst.name}":`, { error: e.message });
     }
   }
 }
 
-// loadExistingInstances(); // Desactivado previamente para multi-tenant, pero habilitado para persistencia
+// Banner de Inicio
+console.log("\n" + "=".repeat(50));
+sysLog('start', 'DEALERBOT AI - SISTEMA INICIALIZADO');
+sysLog('info', `📡 Módulo: Backend Server (v1.0.0)`);
+sysLog('info', `🔌 Puerto: ${PORT}`);
+if (supabaseUrl) sysLog('info', `☁️  Cloud: Supabase connected to ${supabaseUrl.substring(0, 30)}...`);
+console.log("=".repeat(50) + "\n");
+
 loadExistingInstances();
 
 // Middleware de autenticación para Socket.IO
@@ -743,16 +890,21 @@ io.use(async (socket, next) => {
     socket.workspaceId = await getOrCreateWorkspace(userClient, user.id, user.email);
     next();
   } catch (error) {
-    sysLog('error', '[AUTH] ❌ Error de autenticación de Socket:', { error: error.message });
+    sysLog('error', '[AUTH] Error de negociación Socket.IO:', { error: error.message });
     return next(new Error('Authentication error: ' + error.message));
   }
 });
 
 io.on('connection', (socket) => {
-  sysLog('info', `[server] ✅ UI conectada para el usuario: ${socket.user.email} (Workspace: ${socket.workspaceId})`);
+  sysLog('success', `[SYSTEM] Conexión UI establecida: ${socket.user.email}`, { workspaceId: socket.workspaceId });
+
+  socket.on('join-instance', ({ instanceId }) => {
+    socket.join(instanceId);
+    sysLog('debug', `[SYSTEM] El usuario ${socket.user.email} se ha unido al canal: ${instanceId}`);
+  });
 
   socket.on('init-instance', async ({ name }) => {
-    const { data: existing } = await supabase
+    const { data: existing } = await socket.supabase
       .from('instances')
       .select('id')
       .eq('workspace_id', socket.workspaceId)
@@ -760,15 +912,17 @@ io.on('connection', (socket) => {
       .maybeSingle();
 
     if (existing) {
-      sysLog('info', `[server] Re-inicializando instancia existente: ${name}`);
+      sysLog('info', `[SYSTEM] Re-activando instancia detectada: ${name}`);
+      socket.join(existing.id); // JOIN ROOM
       await initWhatsAppClient(existing.id, name, socket);
       return;
     }
 
     const tempId = uuidv4();
+    socket.join(tempId); // JOIN ROOM
     sysLog('info', `[server] Nueva instancia para workspace ${socket.workspaceId}: ${name} (ID: ${tempId})`);
 
-    const { error } = await supabase
+    const { error } = await socket.supabase
       .from('instances')
       .insert([{
         id: tempId,
@@ -780,7 +934,7 @@ io.on('connection', (socket) => {
       }]);
 
     if (error) {
-      sysLog('error', "[server] Error al crear registro:", { error });
+      sysLog('error', "[DATABASE] Error al registrar nueva instancia:", { error });
       socket.emit('error', { message: "Error DB: " + error.message });
       return;
     }
@@ -792,7 +946,7 @@ io.on('connection', (socket) => {
   socket.on('send-message', async ({ instanceId, to, message }) => {
     sysLog('info', `[socket] Intentando enviar mensaje desde ${instanceId} a ${to}`);
     const worker = workers.get(instanceId);
-    
+
     if (worker) {
       worker.postMessage({ type: 'send-message', to, text: message });
       sysLog('info', `[socket] Comando de envío enviado al worker`);
@@ -804,13 +958,13 @@ io.on('connection', (socket) => {
 
   socket.on('change-scope', async ({ instanceId, scope }) => {
     sysLog('info', `[socket] Cambiando scope de ${instanceId} a ${scope}`);
-    const { error } = await supabase
+    const { error } = await socket.supabase
       .from('instances')
       .update({ scope })
       .eq('id', instanceId);
 
     if (error) {
-      sysLog('error', `[socket] Error al cambiar scope:`, { error: error.message });
+      sysLog('error', `[DATABASE] Error al actualizar alcance de ${instanceId}:`, { error: error.message });
       socket.emit('error', { message: 'Error al cambiar alcance: ' + error.message });
     } else {
       socket.emit('scope-changed', { instanceId, scope });
@@ -818,10 +972,10 @@ io.on('connection', (socket) => {
   });
 
   socket.on('restart-instance', async ({ instanceId }) => {
-    sysLog('info', `[server] Solicitud de reinicio para instancia: ${instanceId}`);
-    
+    sysLog('info', `[SYSTEM] Procesando solicitud de reinicio para: ${instanceId}`);
+
     // Obtenemos los datos de la instancia para el nombre
-    const { data: inst } = await supabase.from('instances').select('*').eq('id', instanceId).single();
+    const { data: inst } = await socket.supabase.from('instances').select('*').eq('id', instanceId).single();
     if (inst) {
       // initWhatsAppClient ya maneja la terminación del worker previo si existe
       await initWhatsAppClient(inst.id, inst.name, socket);
@@ -836,12 +990,12 @@ io.on('connection', (socket) => {
     if (worker) {
       worker.postMessage({ type: 'run-connectivity-test' });
     } else {
-      socket.emit('error', { message: 'Instancia no activa para diagnóstico' });
+      socket.emit('connectivity-test-result', { instanceId, success: false, error: 'Instancia no activa para diagnóstico' });
     }
   });
 
   socket.on('disconnect', () => {
-    sysLog('info', '[server] UI desconectada');
+    sysLog('info', '[SYSTEM] UI desconectada');
     // No destruimos los clientes al desconectar el socket porque el bot debe seguir corriendo
     // Pero el socket.currentClient ya no existirá
   });

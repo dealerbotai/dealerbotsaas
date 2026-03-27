@@ -188,7 +188,7 @@ const FlowBuilder = () => {
       <div className="h-[calc(100vh-180px)] flex flex-col gap-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-black tracking-tighter text-nexus-gradient uppercase italic">Constructor de Flujos</h1>
+            <h1 className="text-3xl font-black tracking-tighter text-dealerbot-gradient uppercase italic">Constructor de Flujos</h1>
             <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.2em] mt-1">Automatización Visual n8n Style</p>
           </div>
           <div className="flex gap-4 items-center">
@@ -206,7 +206,7 @@ const FlowBuilder = () => {
         <div className="flex-1 flex gap-6 overflow-hidden">
           {/* Sidebar Left: Nodes */}
           <div className="w-64 flex flex-col gap-4">
-            <div className="nexus-card p-4 space-y-4">
+            <div className="dealerbot-card p-4 space-y-4">
               <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Nodos</h3>
               <div className="grid grid-cols-1 gap-2">
                 {(Object.keys(NODE_CONFIGS) as Array<keyof typeof NODE_CONFIGS>).map((type) => (
@@ -226,7 +226,7 @@ const FlowBuilder = () => {
               </div>
             </div>
 
-            <div className="nexus-card p-4 flex-1 overflow-y-auto">
+            <div className="dealerbot-card p-4 flex-1 overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Mis Flujos</h3>
                 <Button 
@@ -264,7 +264,7 @@ const FlowBuilder = () => {
           </div>
 
           {/* Main Canvas */}
-          <div className="flex-1 nexus-card relative overflow-hidden bg-black/40">
+          <div className="flex-1 dealerbot-card relative overflow-hidden bg-black/40">
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -294,7 +294,7 @@ const FlowBuilder = () => {
                 initial={{ x: 300, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 300, opacity: 0 }}
-                className="w-80 nexus-card p-6 border-l border-white/5 flex flex-col gap-6"
+                className="w-80 dealerbot-card p-6 border-l border-white/5 flex flex-col gap-6"
               >
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-black uppercase tracking-widest">Configuración</h2>

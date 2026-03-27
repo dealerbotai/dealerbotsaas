@@ -1,10 +1,10 @@
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-cbc';
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default-key-32-chars-long-placeholder'; // Debería ser de 32 bytes
-const IV_LENGTH = 16; // Para AES, el IV es siempre de 16 bytes
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default-key-32-chars-long-placeholder'; 
+const IV_LENGTH = 16; 
 
-function encrypt(text) {
+export function encrypt(text) {
   if (!text) return null;
   try {
     const iv = crypto.randomBytes(IV_LENGTH);
@@ -14,13 +14,13 @@ function encrypt(text) {
     return iv.toString('hex') + ':' + encrypted.toString('hex');
   } catch (error) {
     console.error('Encryption error:', error);
-    return text; // Fallback al texto plano si algo falla (temporal para no romper el sistema)
+    return text; 
   }
 }
 
-function decrypt(text) {
+export function decrypt(text) {
   if (!text) return null;
-  if (!text.includes(':')) return text; // Si no tiene el formato iv:data, asumimos texto plano
+  if (!text.includes(':')) return text; 
 
   try {
     const textParts = text.split(':');
@@ -32,8 +32,7 @@ function decrypt(text) {
     return decrypted.toString();
   } catch (error) {
     console.error('Decryption error:', error);
-    return text; // Fallback
+    return text; 
   }
 }
 
-module.exports = { encrypt, decrypt };

@@ -22,7 +22,7 @@ export const Logo = ({ className = "w-10 h-10" }: { className?: string }) => {
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
       </div>
       <span className="text-xl font-black tracking-tighter uppercase italic">
-        Sales<span className="text-primary">Bot</span>
+        Dealerbot <span className="text-primary">AI</span>
       </span>
     </div>
   );

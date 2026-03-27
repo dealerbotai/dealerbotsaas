@@ -44,6 +44,10 @@ const InstanceDetails = () => {
   const instance = instances.find(i => i.id === id);
 
   useEffect(() => {
+    if (socket && id) {
+      socket.emit('join-instance', { instanceId: id });
+    }
+    
     const fetchAgents = async () => {
       try {
         const data = await api.getAgents();
@@ -53,7 +57,7 @@ const InstanceDetails = () => {
       }
     };
     fetchAgents();
-  }, []);
+  }, [id, socket]);
 
   const handleShowQR = () => {
     if (instance?.status === 'expired' || instance?.status === 'disconnected') {
@@ -298,7 +302,6 @@ const InstanceDetails = () => {
                     variant="outline" 
                     className="w-full rounded-xl font-bold h-11 gap-2 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10"
                     onClick={() => runConnectivityTest(instance.id)}
-                    disabled={instance.status !== 'connected'}
                   >
                     <Activity className="w-4 h-4" /> Diagnosticar Conexión
                   </Button>

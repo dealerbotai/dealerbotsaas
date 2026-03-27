@@ -40,6 +40,43 @@ export interface GlobalSettings {
   global_personality?: string;
 }
 
+export interface Product {
+  id: string;
+  workspace_id: string;
+  name: string;
+  price: number;
+  description?: string;
+  image_url?: string;
+  category?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface DeliveryPerson {
+  id: string;
+  workspace_id: string;
+  name: string;
+  phone?: string;
+  vehicle?: string;
+  status: 'available' | 'busy' | 'offline';
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Sale {
+  id: string;
+  workspace_id: string;
+  instance_id?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  total_amount: number;
+  status: 'pending' | 'confirmed' | 'delivered' | 'cancelled';
+  items: any[];
+  bot_closure: boolean;
+  created_at: string;
+  instances?: { name: string };
+}
+
 export const api = {
   getInstances: async () => {
     const { data, error } = await supabase
@@ -186,5 +223,95 @@ export const api = {
       text: m.content,
       type: m.type
     }));
+  },
+
+  // --- PRODUCTOS ---
+  getProducts: async () => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data as Product[];
+  },
+
+  createProduct: async (product: Partial<Product>) => {
+    const { data, error } = await supabase
+      .from('products')
+      .insert([product])
+      .select()
+      .single();
+    if (error) throw error;
+    return data as Product;
+  },
+
+  updateProduct: async (id: string, updates: Partial<Product>) => {
+    const { data, error } = await supabase
+      .from('products')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as Product;
+  },
+
+  deleteProduct: async (id: string) => {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  // --- REPARTIDORES ---
+  getDeliveryPersonnel: async () => {
+    const { data, error } = await supabase
+      .from('delivery_personnel')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data as DeliveryPerson[];
+  },
+
+  createDeliveryPerson: async (person: Partial<DeliveryPerson>) => {
+    const { data, error } = await supabase
+      .from('delivery_personnel')
+      .insert([person])
+      .select()
+      .single();
+    if (error) throw error;
+    return data as DeliveryPerson;
+  },
+
+  updateDeliveryPerson: async (id: string, updates: Partial<DeliveryPerson>) => {
+    const { data, error } = await supabase
+      .from('delivery_personnel')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as DeliveryPerson;
+  },
+
+  deleteDeliveryPerson: async (id: string) => {
+    const { error } = await supabase
+      .from('delivery_personnel')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  // --- VENTAS ---
+  getSales: async () => {
+    const { data, error } = await supabase
+      .from('sales')
+      .select('*, instances(name)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data as Sale[];
   },
 };

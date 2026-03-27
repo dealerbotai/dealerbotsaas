@@ -213,15 +213,28 @@ const Agents = () => {
         await api.updateAgent(editingAgent.id, formData);
         toast({ title: "Agente actualizado", description: "Los cambios se guardaron correctamente" });
       } else {
-        await api.createAgent(formData);
+        // Fetch workspace_id before creating
+        const { user } = (await supabase.auth.getSession()).data.session || {};
+        if (!user) throw new Error("No user session");
+        
+        const { data: member } = await supabase
+          .from('workspace_members')
+          .select('workspace_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        const workspaceId = member?.workspace_id;
+        if (!workspaceId) throw new Error("No se encontró espacio de trabajo");
+
+        await api.createAgent({ ...formData, workspace_id: workspaceId });
         toast({ title: "Agente creado", description: "El nuevo agente ha sido registrado" });
       }
       setIsModalOpen(false);
       fetchAgents();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "No se pudo guardar el agente",
+        description: error.message || "No se pudo guardar el agente",
         variant: "destructive"
       });
     }
@@ -256,7 +269,7 @@ const Agents = () => {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-black tracking-tighter text-nexus-gradient uppercase italic">Agentes IA</h1>
+            <h1 className="text-4xl font-black tracking-tighter text-dealerbot-gradient uppercase italic">Agentes IA</h1>
             <p className="text-gray-500 font-mono text-xs uppercase tracking-[0.2em] mt-1">Crea y Personaliza tus Entidades Inteligentes</p>
           </div>
           <Button 
@@ -293,7 +306,7 @@ const Agents = () => {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="nexus-card p-6 border-t-2 border-white/5 group relative overflow-hidden"
+                  className="dealerbot-card p-6 border-t-2 border-white/5 group relative overflow-hidden"
                 >
                   <div className="flex justify-between items-start mb-6">
                     <div className="flex items-center gap-4">
@@ -364,7 +377,7 @@ const Agents = () => {
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="sm:max-w-[700px] bg-[#0d0e12] border-white/10 text-white rounded-[32px] overflow-hidden">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-black tracking-tighter uppercase italic text-nexus-gradient">
+              <DialogTitle className="text-2xl font-black tracking-tighter uppercase italic text-dealerbot-gradient">
                 {editingAgent ? 'Editar Agente' : 'Nuevo Agente'}
               </DialogTitle>
               <DialogDescription className="text-gray-500 font-mono text-[10px] uppercase tracking-widest">

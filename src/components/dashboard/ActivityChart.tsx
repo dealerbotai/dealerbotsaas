@@ -39,7 +39,7 @@ export const ActivityChart = ({ data = [] }: ActivityChartProps) => {
   const chartData = processData();
 
   return (
-    <Card className="nexus-card overflow-hidden border-white/5">
+    <Card className="dealerbot-card overflow-hidden border-white/5">
       <CardHeader className="border-b border-white/5">
         <CardTitle className="text-lg font-black uppercase italic tracking-tight flex items-center gap-2 text-white">
           Actividad de Mensajes

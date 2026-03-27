@@ -12,6 +12,9 @@ import Settings from "./pages/Settings";
 import InstanceDetails from "./pages/InstanceDetails";
 import Agents from "./pages/Agents";
 import FlowBuilder from "./pages/FlowBuilder";
+import Products from "./pages/Products";
+import Delivery from "./pages/Delivery";
+import SalesDashboard from "./pages/SalesDashboard";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 
@@ -32,6 +35,9 @@ const App = () => (
               <Route path="/instances/:id" element={<InstanceDetails />} />
               <Route path="/agents" element={<Agents />} />
               <Route path="/flows" element={<FlowBuilder />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/delivery" element={<Delivery />} />
+              <Route path="/sales" element={<SalesDashboard />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
