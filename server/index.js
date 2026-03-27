@@ -22,7 +22,7 @@ if (fs.existsSync(envPath)) {
   console.log('✅ [SERVER] .env file loaded from:', envPath);
 } else {
   console.warn('⚠️ [SERVER] .env file NOT FOUND at:', envPath);
-  dotenv.config(); 
+  dotenv.config();
 }
 
 
@@ -94,11 +94,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// REQUERIMIENTO: Health Check para Render
-app.get('/healthz', (req, res) => res.status(200).send('OK'));
-
 const server = http.createServer(app);
-
 const io = new SocketIO(server, {
   cors: { origin: "*", methods: ["GET", "POST"] }
 });
@@ -350,7 +346,7 @@ app.post('/scrape', authenticate, async (req, res) => {
       const { error: importError } = await req.supabase
         .from('products')
         .upsert(productsToImport, { onConflict: 'workspace_id,name' });
-      
+
       if (importError) {
         sysLog('error', `[SCRAPER] Error al importar productos: ${importError.message}`);
       } else {
@@ -690,16 +686,9 @@ async function initWhatsAppClient(id, name, socket = null) {
   await new Promise(resolve => setTimeout(resolve, 100));
 
   // Dealerbot AI (Baileys) - Worker iniciado
-  // Dealerbot AI (Baileys) - Worker iniciado con credenciales críticas
   const worker = new Worker(path.join(__dirname, 'baileys-worker.js'), {
-    workerData: { 
-      id, 
-      name, 
-      supabaseUrl, 
-      supabaseKey // Service Role Key para bypass RLS en backend
-    }
+    workerData: { id, name, supabaseUrl, supabaseKey }
   });
-
 
 
   worker.on('message', async (msg) => {
@@ -760,7 +749,7 @@ async function initWhatsAppClient(id, name, socket = null) {
               type: 'text'
             }]);
           }
-        } catch (e) { 
+        } catch (e) {
           sysLog('error', '[DATABASE] Error guardando log de expiración:', { error: e.message });
         }
         break;
@@ -1012,22 +1001,4 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => {
-  sysLog('start', `🚀 Dealerbot AI Server corriendo en puerto ${PORT}`);
-});
-
-// REQUERIMIENTO: Graceful Shutdown para soportar despliegues sin interrupciones en Render
-process.on('SIGTERM', () => {
-  sysLog('warn', '[SYSTEM] Finalizando Dealerbot AI Server (SIGTERM)...');
-  
-  // Detener todos los workers (WhatsApp Sockets)
-  for (const [id, worker] of workers.entries()) {
-    sysLog('info', `⚠️ Cerrando conexión de worker ${id}...`);
-    worker.terminate();
-  }
-  
-  server.close(() => {
-    sysLog('success', '🔌 Dealerbot AI Server apagado limpiamente.');
-    process.exit(0);
-  });
-});
+server.listen(PORT, () => sysLog('info', `[server] Puerto ${PORT}`));
