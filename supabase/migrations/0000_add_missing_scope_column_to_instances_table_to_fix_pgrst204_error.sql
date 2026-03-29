@@ -1,1 +1,0 @@
-ALTER TABLE instances ADD COLUMN IF NOT EXISTS scope TEXT DEFAULT 'all';

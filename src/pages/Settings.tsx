@@ -2,14 +2,13 @@
 
 import React from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { useGlobalSettings } from '@/hooks/use-global-settings';
+import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
 import { GroqConfig } from '@/components/settings/GroqConfig';
-import { ScraperSection } from '@/components/settings/ScraperSection';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings as SettingsIcon, Globe, Key, ShieldCheck } from 'lucide-react';
+import { Settings as SettingsIcon, Key, ShieldCheck } from 'lucide-react';
 
 const Settings = () => {
-  const { settings, updateSettings, scrapeUrl, scraping } = useGlobalSettings();
+  const { settings, updateSettings } = useWhatsApp();
 
   return (
     <MainLayout>
@@ -24,9 +23,6 @@ const Settings = () => {
             <TabsTrigger value="general" className="rounded-xl px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm h-full gap-2">
               <SettingsIcon className="w-4 h-4" /> General
             </TabsTrigger>
-            <TabsTrigger value="scraper" className="rounded-xl px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm h-full gap-2">
-              <Globe className="w-4 h-4" /> Escáner
-            </TabsTrigger>
             <TabsTrigger value="security" className="rounded-xl px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm h-full gap-2">
               <ShieldCheck className="w-4 h-4" /> Seguridad
             </TabsTrigger>
@@ -35,15 +31,8 @@ const Settings = () => {
           <TabsContent value="general" className="space-y-8 outline-none">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <GroqConfig 
-                apiKey={settings.groq_api_key_encrypted ? '********' : ''}
-                personality={settings.global_personality}
-                onSave={({ apiKey, personality }) => {
-                  const updates: any = { global_personality: personality };
-                  if (apiKey && apiKey !== '********') {
-                    updates.groq_api_key = apiKey;
-                  }
-                  updateSettings(updates);
-                }}
+                apiKey={settings.groqApiKey} 
+                onSave={(key) => updateSettings({ groqApiKey: key })} 
               />
               
               <div className="bg-primary/5 rounded-[32px] p-8 border border-primary/10 flex flex-col justify-center">
@@ -63,18 +52,6 @@ const Settings = () => {
                   <span className="text-sm font-bold text-primary">Confiado por más de 500 tiendas</span>
                 </div>
               </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="scraper" className="outline-none">
-            <div className="max-w-4xl">
-              <ScraperSection 
-                url={settings.ecommerce_url} 
-                scrapedData={settings.scraped_data} 
-                onScrape={scrapeUrl} 
-                onUpdateSettings={updateSettings}
-                loading={scraping} 
-              />
             </div>
           </TabsContent>
 

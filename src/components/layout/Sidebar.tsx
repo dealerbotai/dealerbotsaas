@@ -1,109 +1,105 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+"use client";
+
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
-  LayoutDashboard, 
-  Settings, 
-  MessageSquare, 
-  LogOut, 
-  User, 
-  Package, 
-  Truck, 
-  BarChart3,
-  Moon,
-  Sun
+    LayoutDashboard, 
+    Settings, 
+    MessageSquare, 
+    Bot, 
+    BarChart3,
+    LogOut,
+    Store,
+    Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
-import { useState, useEffect } from 'react';
+import { Logo } from './Logo';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-  { icon: MessageSquare, label: 'Instancias', path: '/instances' },
-  { icon: User, label: 'Agentes IA', path: '/agents' },
-  { icon: Package, label: 'Productos', path: '/products' },
-  { icon: Truck, label: 'Repartidores', path: '/delivery' },
-  { icon: BarChart3, label: 'Ventas', path: '/sales' },
+  { icon: MessageSquare, label: 'Instancias WA', path: '/instances' },
+  { icon: Store, label: 'Tiendas', path: '/stores' },
+  { icon: Bot, label: 'Agentes IA', path: '/agents' },
+  { icon: BarChart3, label: 'Analíticas', path: '/analytics' },
+];
+
+const secondaryItems = [
   { icon: Settings, label: 'Configuración', path: '/settings' },
 ];
 
 export const Sidebar = () => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    if (isDark) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  }, [isDark]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
+  const { signOut, user } = useAuth();
 
   return (
-    <div className="flex flex-col h-screen w-64 bg-background border-r border-border p-6 sticky top-0 z-40">
-      <div className="flex items-center gap-3 mb-10">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground font-black text-lg">N</span>
-        </div>
-        <span className="text-foreground font-bold tracking-tight text-lg">DealerBot AI</span>
+    <div className="flex flex-col h-screen w-64 bg-[#0f172a]/80 backdrop-blur-xl border-r border-white/10 p-6">
+      <Logo className="mb-10 px-2" />
+
+      <div className="flex flex-col flex-1 gap-8">
+        <nav className="space-y-1">
+          <p className="px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Menú Principal</p>
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link key={item.path} to={item.path}>
+                <div className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group mb-1',
+                  isActive 
+                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 ai-glow' 
+                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                )}>
+                  <item.icon className={cn('w-4 h-4', isActive ? 'text-cyan-400' : 'group-hover:text-cyan-400')} />
+                  <span className="text-sm font-semibold">{item.label}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <nav className="space-y-1">
+          <p className="px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Sistema</p>
+          {secondaryItems.map((item) => {
+             const isActive = location.pathname === item.path;
+             return (
+               <Link key={item.path} to={item.path}>
+                 <div className={cn(
+                   'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 group mb-1',
+                   isActive 
+                     ? 'bg-white/10 text-white' 
+                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                 )}>
+                   <item.icon className="w-4 h-4" />
+                   <span className="text-sm font-semibold">{item.label}</span>
+                 </div>
+               </Link>
+             );
+          })}
+        </nav>
       </div>
 
-      <nav className="flex-1 space-y-1">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path || (item.path === '/instances' && location.pathname.startsWith('/instances'));
-          return (
-            <Link key={item.path} to={item.path}>
-              <Button
-                variant="ghost"
-                className={cn(
-                  'w-full justify-start gap-3 px-3 py-2 rounded-lg transition-all text-sm font-medium',
-                  isActive
-                    ? 'text-primary bg-primary/5'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                )}
-              >
-                <item.icon className={cn("w-4 h-4", isActive && "text-primary")} />
-                <span>{item.label}</span>
-              </Button>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="mt-auto pt-6 border-t border-border space-y-4">
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
-          onClick={() => setIsDark(!isDark)}
-        >
-          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          <span className="text-sm font-medium">{isDark ? 'Modo Claro' : 'Modo Oscuro'}</span>
-        </Button>
-
-        {user && (
-          <div className="space-y-3">
-            <div className="flex flex-col gap-1 p-3 rounded-xl bg-accent/50 border border-border">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Usuario</p>
-              <p className="text-xs font-medium text-foreground truncate">{user.email}</p>
-            </div>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors" 
-              onClick={handleSignOut}
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="text-sm font-medium">Salir</span>
-            </Button>
+      <div className="mt-auto pt-6 border-t border-white/10 space-y-4">
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-black uppercase shadow-lg">
+            {user?.email?.[0] || 'U'}
           </div>
-        )}
+          <div className="flex-1 min-w-0">
+             <p className="text-[10px] font-black text-white truncate uppercase tracking-tighter">{user?.email?.split('@')[0]}</p>
+             <div className="flex items-center gap-1">
+                <Zap className="w-2.5 h-2.5 text-orange-500" />
+                <p className="text-[9px] text-orange-500 font-black uppercase tracking-tight">Plan Premium</p>
+             </div>
+          </div>
+        </div>
+        
+        <Button 
+            variant="ghost" 
+            onClick={signOut}
+            className="w-full justify-start gap-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl h-11"
+        >
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm font-semibold">Cerrar Sesión</span>
+        </Button>
       </div>
     </div>
   );

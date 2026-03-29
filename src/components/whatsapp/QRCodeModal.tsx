@@ -1,89 +1,152 @@
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
-import { Socket } from 'socket.io-client';
-import { WhatsAppConnector } from './WhatsAppConnector';
+import { Loader2, QrCode, CheckCircle2 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { WhatsAppInstance } from '@/hooks/use-whatsapp-instances';
 
 interface QRCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onStartLinking?: (name: string) => void; // Maintained for backwards compatibility
-  socket: Socket | null;
-  onSuccess: () => void;
-  instanceId?: string;
+  onAdd: (name: string) => Promise<any>;
+  instances: WhatsAppInstance[];
+  initialInstance?: { id: string; name: string } | null;
 }
 
-export const QRCodeModal = ({ isOpen, onClose, socket, onSuccess, instanceId }: QRCodeModalProps) => {
+export const QRCodeModal = ({ isOpen, onClose, onAdd, instances, initialInstance }: QRCodeModalProps) => {
   const [name, setName] = useState('');
-  const [step, setStep] = useState<'input' | 'connector'>('input');
-  
+  const [step, setStep] = useState<'input' | 'qr' | 'success'>('input');
+  const [loading, setLoading] = useState(false);
+  const [currentId, setCurrentId] = useState<string | null>(null);
+
+  // Monitor status in real-time
   useEffect(() => {
-    if (isOpen) {
-      if (instanceId) {
-        setStep('connector');
-      } else {
-        setStep('input');
-        setName('');
+    if (currentId) {
+      const active = instances.find(i => i.id === currentId);
+      if (active?.status === 'connected') {
+        setStep('success');
       }
     }
-  }, [isOpen, instanceId]);
+  }, [instances, currentId]);
 
-  const handleStart = () => {
+  useEffect(() => {
+    if (isOpen && initialInstance) {
+      setCurrentId(initialInstance.id);
+      setName(initialInstance.name);
+      setStep('qr');
+    } else if (isOpen && !initialInstance && step !== 'success') {
+       // Reset if opening for new
+       // setStep('input'); 
+    }
+  }, [isOpen, initialInstance]);
+
+  const handleAdd = async () => {
     if (!name) return;
-    setStep('connector');
+    setLoading(true);
+    try {
+      const instance = await onAdd(name);
+      if (instance) {
+        setCurrentId(instance.id);
+        setStep('qr');
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) {
-        setStep('input');
-        onClose();
-      }
-    }}>
-      <DialogContent className="sm:max-w-[450px] p-0 bg-transparent border-none shadow-none">
-        
-        {step === 'input' && (
-          <div className="p-8 border rounded-[1.5rem] shadow-2xl bg-[#0d0e12] border-white/5 w-full mx-auto relative overflow-hidden">
-             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent pointer-events-none" />
-             <h3 className="text-lg font-bold mb-6 text-white uppercase tracking-widest text-center">Nueva Instancia</h3>
-             <div className="space-y-6 relative z-10">
-                <div className="space-y-3">
-                  <Label htmlFor="name" className="text-xs font-bold uppercase tracking-widest text-gray-500">Nombre de la Instancia</Label>
-                  <Input
-                    id="name"
-                    placeholder="ej. Ventas México"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="h-14 rounded-xl border-white/10 bg-white/5 text-white placeholder:text-gray-700 font-bold focus-visible:ring-amber-500/50"
-                  />
-                </div>
-                <Button 
-                  onClick={handleStart} 
-                  disabled={!name} 
-                  className="w-full h-12 rounded-xl font-black bg-amber-500 hover:bg-amber-600 text-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(245,158,11,0.1)] hover:shadow-[0_0_30px_rgba(245,158,11,0.2)] disabled:opacity-50 disabled:hover:shadow-none"
-                >
-                  Continuar a Vinculación
-                </Button>
-             </div>
-          </div>
-        )}
+  const handleClose = () => {
+    setStep('input');
+    setName('');
+    setCurrentId(null);
+    onClose();
+  };
 
-        {step === 'connector' && (
-          <WhatsAppConnector 
-            socket={socket} 
-            instanceId={instanceId} 
-            instanceName={name}
-            onSuccess={() => {
-              onSuccess();
-              setTimeout(() => {
-                onClose();
-                setStep('input');
-              }, 2000);
-            }} 
-          />
-        )}
+  const currentInstance = instances.find(i => i.id === currentId);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[450px] rounded-3xl border-border/50 shadow-2xl">
+        <DialogHeader className="space-y-3">
+          <div className="mx-auto bg-primary/10 p-4 rounded-2xl w-fit">
+            {step === 'input' && <QrCode className="w-8 h-8 text-primary" />}
+            {step === 'qr' && <QrCode className="w-8 h-8 text-primary animate-pulse" />}
+            {step === 'success' && <CheckCircle2 className="w-8 h-8 text-green-500" />}
+          </div>
+          <DialogTitle className="text-2xl font-bold text-center tracking-tight">
+            {step === 'input' && 'Vincular Nueva Cuenta'}
+            {step === 'qr' && 'Escanear con WhatsApp'}
+            {step === 'success' && '¡Instancia Vinculada!'}
+          </DialogTitle>
+          <DialogDescription className="text-center text-muted-foreground font-medium">
+            {step === 'input' && 'Introduce un nombre identificador para esta cuenta.'}
+            {step === 'qr' && 'Abre WhatsApp > Dispositivos Vinculados > Vincular.'}
+            {step === 'success' && 'Tu cuenta ya está lista para responder automáticamente.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="py-6 min-h-[250px] flex items-center justify-center">
+          {step === 'input' && (
+            <div className="space-y-4 w-full">
+              <div className="space-y-2">
+                <Label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Nombre de la cuenta</Label>
+                <Input
+                  placeholder="ej. WhatsApp Ventas"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-12 rounded-xl border-border/50 focus:ring-primary/20"
+                />
+              </div>
+            </div>
+          )}
+
+          {step === 'qr' && (
+            <div className="flex flex-col items-center justify-center space-y-6">
+              <div className="p-4 bg-white rounded-3xl shadow-lg border-4 border-primary/10">
+                {currentInstance?.qr ? (
+                  <QRCodeSVG value={currentInstance.qr} size={200} includeMargin />
+                ) : (
+                  <div className="w-48 h-48 flex flex-col items-center justify-center bg-muted rounded-2xl gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-[10px] font-bold text-muted-foreground animate-pulse">GENERANDO QR...</p>
+                  </div>
+                )}
+              </div>
+              <div className="bg-accent/50 p-4 rounded-2xl border border-border/50 w-full text-center">
+                <p className="text-sm font-bold text-primary animate-pulse">
+                  {currentInstance?.status === 'qr_ready' ? 'ESPERANDO ESCANEO...' : 'INICIALIZANDO MOTOR...'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {step === 'success' && (
+            <div className="flex flex-col items-center justify-center py-4 text-center">
+              <div className="bg-green-500/20 p-8 rounded-full mb-6">
+                <CheckCircle2 className="w-16 h-16 text-green-500" />
+              </div>
+              <h3 className="text-xl font-black">Cuenta vinculada con éxito</h3>
+              <p className="text-muted-foreground font-medium mt-1">Sincronizando chats en segundo plano...</p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="sm:justify-center gap-3">
+          {step === 'input' && (
+            <Button onClick={handleAdd} disabled={!name || loading} className="rounded-xl font-bold h-12 px-12 transition-all">
+                {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                EMPEZAR VINCULACIÓN
+            </Button>
+          )}
+          {step === 'success' && (
+            <Button onClick={handleClose} className="rounded-xl font-bold h-12 px-12 w-full">
+              VOLVER AL PANEL
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

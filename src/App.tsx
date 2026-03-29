@@ -1,50 +1,46 @@
-"use client";
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import { ProtectedRoute } from "./contexts/ProtectedRoute";
-import Dashboard from "./pages/Dashboard";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import Index from "./pages/Index";
+import Login from "./pages/Login";
 import Settings from "./pages/Settings";
 import InstanceDetails from "./pages/InstanceDetails";
+import WhatsAppWeb from "./pages/WhatsAppWeb";
+import Analytics from "./pages/Analytics";
 import Agents from "./pages/Agents";
-import FlowBuilder from "./pages/FlowBuilder";
-import Products from "./pages/Products";
-import Delivery from "./pages/Delivery";
-import SalesDashboard from "./pages/SalesDashboard";
+import Stores from "./pages/Stores";
+import Catalog from "./pages/Catalog";
 import NotFound from "./pages/NotFound";
-import LoginPage from "./pages/LoginPage";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner position="top-right" />
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/instances" element={<Dashboard />} />
-              <Route path="/instances/:id" element={<InstanceDetails />} />
-              <Route path="/agents" element={<Agents />} />
-              <Route path="/flows" element={<FlowBuilder />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/delivery" element={<Delivery />} />
-              <Route path="/sales" element={<SalesDashboard />} />
-              <Route path="/settings" element={<Settings />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner position="top-right" />
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/instances" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/instances/:id" element={<ProtectedRoute><InstanceDetails /></ProtectedRoute>} />
+              <Route path="/instances/:id/web" element={<ProtectedRoute><WhatsAppWeb /></ProtectedRoute>} />
+              <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+              <Route path="/agents" element={<ProtectedRoute><Agents /></ProtectedRoute>} />
+              <Route path="/stores" element={<ProtectedRoute><Stores /></ProtectedRoute>} />
+              <Route path="/catalog" element={<ProtectedRoute><Catalog /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

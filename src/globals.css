@@ -4,48 +4,35 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 243.4 75.4% 58.6%; /* Indigo 600 */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 243.4 75.4% 58.6%;
-    --radius: 0.75rem;
-  }
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 243.4 75.4% 58.6%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --card: 224 71% 4%;
+    --card-foreground: 213 31% 91%;
+
+    --popover: 224 71% 4%;
+    --popover-foreground: 213 31% 91%;
+
+    --primary: 191 91% 50%; /* Cyan Pro */
+    --primary-foreground: 224 71% 4%;
+
+    --secondary: 262 83% 58%; /* Purple Pro */
+    --secondary-foreground: 213 31% 91%;
+
+    --muted: 223 47% 11%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 191 91% 50%;
+    --accent-foreground: 213 31% 91%;
+
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 243.4 75.4% 58.6%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 191 91% 50%;
+
+    --radius: 1.5rem;
   }
 }
 
@@ -53,16 +40,35 @@
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-[#020617] text-foreground font-sans antialiased selection:bg-primary/30 selection:text-primary;
+    background-image: 
+      radial-gradient(circle at 0% 0%, rgba(6, 182, 212, 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, rgba(2, 6, 23, 1) 0%, rgba(2, 6, 23, 1) 100%);
+    background-attachment: fixed;
   }
 }
 
-/* Clases de utilidad para el diseño minimalista */
-.dealerbot-card {
-  @apply bg-card border border-border rounded-xl shadow-sm transition-all duration-200 hover:shadow-md;
-}
+@layer components {
+  .glass-panel {
+    @apply bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.8)];
+  }
+  
+  .glass-card {
+    @apply bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-[32px] transition-all duration-500 hover:bg-white/[0.05] hover:border-white/[0.1] hover:shadow-[0_0_40px_-10px_rgba(6,182,212,0.3)];
+  }
 
-.text-dealerbot-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-400;
+  .ai-glow {
+    @apply shadow-[0_0_20px_rgba(6,182,212,0.4)];
+  }
+
+  .ai-glow-hover:hover {
+    @apply shadow-[0_0_30px_rgba(6,182,212,0.6)] scale-[1.02];
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-400 to-secondary;
+  }
 }

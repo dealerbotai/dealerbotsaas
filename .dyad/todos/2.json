@@ -1,0 +1,35 @@
+{
+  "todos": [
+    {
+      "id": "mock-api-hook",
+      "content": "Create Mock API and Hook for WhatsApp instances",
+      "status": "completed"
+    },
+    {
+      "id": "layout-components",
+      "content": "Create Sidebar and Layout components",
+      "status": "completed"
+    },
+    {
+      "id": "whatsapp-components",
+      "content": "Create WhatsApp Instance components (Card, QR Modal)",
+      "status": "completed"
+    },
+    {
+      "id": "settings-components",
+      "content": "Create Settings components (Scraper, Groq Config)",
+      "status": "completed"
+    },
+    {
+      "id": "pages",
+      "content": "Create Pages (Dashboard, Settings, Instance Details)",
+      "status": "completed"
+    },
+    {
+      "id": "routing",
+      "content": "Set up routing in App.tsx",
+      "status": "completed"
+    }
+  ],
+  "updatedAt": "2026-03-21T10:00:00.000Z"
+}

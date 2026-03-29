@@ -2,126 +2,114 @@
 
 import React, { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { useInstances } from '@/hooks/use-instances';
-import { useGlobalSettings } from '@/hooks/use-global-settings';
-import { ServerStatus } from '@/components/dashboard/ServerStatus';
-import { ActivityChart } from '@/components/dashboard/ActivityChart';
-import { SystemTerminal } from '@/components/dashboard/SystemTerminal';
+import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
 import { InstanceCard } from '@/components/whatsapp/InstanceCard';
 import { QRCodeModal } from '@/components/whatsapp/QRCodeModal';
 import { Button } from '@/components/ui/button';
-import { Plus, LayoutGrid, List } from 'lucide-react';
+import { Plus, Users, MessageSquare, Zap, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Dashboard = () => {
-  const { instances, loading, toggleBot, deleteInstance, startLinking, socket } = useInstances();
-  const { settings } = useGlobalSettings();
+  const { instances, loading, toggleBot, deleteInstance, addInstance } = useWhatsApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const stats = [
-    { label: 'Instancias Activas', value: instances.filter(i => i.status === 'connected').length, total: instances.length },
-    { label: 'Mensajes Hoy', value: settings.total_messages || 0, trend: '+12%' },
-    { label: 'Bots Encendidos', value: instances.filter(i => i.bot_enabled).length, total: instances.length },
+    { label: 'Total de Instancias', value: instances.length, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { label: 'Bots Activos', value: instances.filter(i => i.botEnabled).length, icon: Zap, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+    { label: 'Conectados', value: instances.filter(i => i.status === 'connected').length, icon: Activity, color: 'text-green-500', bg: 'bg-green-500/10' },
+    { label: 'Mensajes Hoy', value: '1,284', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-500/10' },
   ];
 
   return (
     <MainLayout>
-      <div className="space-y-10">
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Monitorea y gestiona tus automatizaciones de WhatsApp.</p>
+            <h1 className="text-3xl font-bold tracking-tight">Panel de Control</h1>
+            <p className="text-muted-foreground font-medium">Gestiona tu red de automatización de WhatsApp.</p>
           </div>
-          <Button onClick={() => { setSelectedInstanceId(null); setIsModalOpen(true); }} className="rounded-lg h-11 px-6 font-semibold gap-2">
-            <Plus className="w-4 h-4" /> Nueva Instancia
+          <Button 
+            onClick={() => setIsModalOpen(true)} 
+            className="rounded-2xl h-12 px-6 font-bold gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+          >
+            <Plus className="w-5 h-5" /> Añadir Nueva Instancia
           </Button>
-        </header>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, idx) => (
-            <motion.div 
+            <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
-              className="dealerbot-card p-6"
+              className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm"
             >
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-foreground">{stat.value}</span>
-                {stat.total !== undefined && (
-                  <span className="text-sm text-muted-foreground">/ {stat.total}</span>
-                )}
-                {stat.trend && (
-                  <span className="text-xs font-bold text-green-500 ml-auto">{stat.trend}</span>
-                )}
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-2xl ${stat.bg}`}>
+                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+                  <p className="text-2xl font-black">{stat.value}</p>
+                </div>
               </div>
             </motion.div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Instancias de WhatsApp</h2>
-              <div className="flex bg-muted p-1 rounded-lg">
-                <Button 
-                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'} 
-                  size="sm" 
-                  onClick={() => setViewMode('grid')}
-                  className="rounded-md h-8 w-8 p-0"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
-                  size="sm" 
-                  onClick={() => setViewMode('list')}
-                  className="rounded-md h-8 w-8 p-0"
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-              </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight">Tus Instancias</h2>
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              {instances.filter(i => i.status === 'connected').length} En línea
             </div>
-
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[1, 2].map(i => <div key={i} className="h-48 rounded-xl bg-muted animate-pulse" />)}
-              </div>
-            ) : (
-              <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 gap-6" : "space-y-4"}>
-                {instances.map((instance) => (
-                  <InstanceCard
-                    key={instance.id}
-                    instance={instance}
-                    onToggleBot={() => toggleBot(instance.id, !instance.bot_enabled)}
-                    onDelete={() => deleteInstance(instance.id)}
-                    onLink={() => { setSelectedInstanceId(instance.id); setIsModalOpen(true); }}
-                  />
-                ))}
-              </div>
-            )}
-            
-            <ActivityChart />
           </div>
 
-          <div className="space-y-8">
-            <ServerStatus />
-            <SystemTerminal />
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-[300px] rounded-3xl bg-accent/50 animate-pulse" />
+              ))}
+            </div>
+          ) : instances.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {instances.map((instance) => (
+                <InstanceCard
+                  key={instance.id}
+                  instance={instance}
+                  onToggleBot={toggleBot}
+                  onDelete={deleteInstance}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center space-y-6 bg-accent/20 rounded-[40px] border-2 border-dashed border-border/50">
+              <div className="p-6 bg-background rounded-full shadow-xl">
+                <MessageSquare className="w-12 h-12 text-muted-foreground" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold">No se encontraron instancias</h3>
+                <p className="text-muted-foreground max-w-md mx-auto font-medium">
+                  Comienza vinculando tu primera cuenta de WhatsApp. Puedes gestionar múltiples cuentas desde un solo lugar.
+                </p>
+              </div>
+              <Button onClick={() => setIsModalOpen(true)} variant="outline" className="rounded-2xl h-12 px-8 font-bold border-primary/20 text-primary hover:bg-primary/5">
+                Vincular WhatsApp Ahora
+              </Button>
+            </div>
+          )}
         </div>
-
-        <QRCodeModal 
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onStartLinking={startLinking}
-          socket={socket}
-          instanceId={selectedInstanceId || undefined}
-          onSuccess={() => { setIsModalOpen(false); setSelectedInstanceId(null); }}
-        />
       </div>
+
+      <QRCodeModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAdd={addInstance}
+        instances={instances}
+      />
+
     </MainLayout>
   );
 };

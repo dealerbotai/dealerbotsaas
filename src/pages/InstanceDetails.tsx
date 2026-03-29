@@ -1,371 +1,313 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { useInstances } from '@/hooks/use-instances';
-import { useGlobalSettings } from '@/hooks/use-global-settings';
-import { useChatLogs } from '@/hooks/use-chat-logs';
-import { ChatModal } from '@/components/whatsapp/ChatModal';
-import { PersonalityModal } from '@/components/whatsapp/PersonalityModal';
-import { QRCodeModal } from '@/components/whatsapp/QRCodeModal';
+import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { 
   ArrowLeft, 
   MessageSquare, 
-  Settings, 
-  Activity, 
   History, 
-  Bot, 
   Shield, 
   Trash2,
-  AlertCircle,
-  ExternalLink,
-  Sparkles,
+  Clock,
   QrCode,
-  User
+  Brain,
+  AlertCircle,
+  Store as StoreIcon,
+  Target
 } from 'lucide-react';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { QRCodeModal } from '@/components/whatsapp/QRCodeModal';
+import { ActivityLog } from '@/components/whatsapp/ActivityLog';
 import { cn } from '@/lib/utils';
-import { api, Agent } from '@/lib/api';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 const InstanceDetails = () => {
   const { id } = useParams();
-  const { instances, toggleBot, deleteInstance, loading, socket, sendMessage, changeScope, restartInstance, updateInstance, runConnectivityTest, startLinking } = useInstances();
-  const { settings } = useGlobalSettings();
-  const { logs } = useChatLogs(id);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isPersonalityModalOpen, setIsPersonalityModalOpen] = useState(false);
-  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const { instances, agents, stores, toggleBot, deleteInstance, startInstance, addInstance, assignAgent, assignStore, loading } = useWhatsApp();
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
   const instance = instances.find(i => i.id === id);
 
-  useEffect(() => {
-    if (socket && id) {
-      socket.emit('join-instance', { instanceId: id });
-    }
-    
-    const fetchAgents = async () => {
-      try {
-        const data = await api.getAgents();
-        setAgents(data);
-      } catch (error) {
-        console.error("Error fetching agents:", error);
-      }
-    };
-    fetchAgents();
-  }, [id, socket]);
+  const updateScope = async (scope: 'all' | 'groups' | 'specific') => {
+    if (!id) return;
+    try {
+        const { error } = await supabase
+            .from('instances')
+            .update({ scope })
+            .eq('id', id);
 
-  const handleShowQR = () => {
-    if (instance?.status === 'expired' || instance?.status === 'disconnected') {
-      restartInstance(instance.id);
-    }
-    setIsQRModalOpen(true);
-  };
-
-  const handleSavePersonality = async (newPersonality: string) => {
-    if (instance) {
-      await updateInstance(instance.id, { personality: newPersonality });
-    }
-    setIsPersonalityModalOpen(false);
-  };
-
-  const handleAgentChange = async (agentId: string) => {
-    if (instance) {
-      await updateInstance(instance.id, { agent_id: agentId });
+        if (error) throw error;
+        toast.success(`Alcance actualizado a: ${scope}`);
+    } catch (error: any) {
+        toast.error('Error al actualizar alcance: ' + error.message);
     }
   };
 
-  if (loading) return <MainLayout><div className="animate-pulse space-y-8"><div className="h-12 w-48 bg-accent rounded-xl" /><div className="h-64 bg-accent rounded-3xl" /></div></MainLayout>;
-  if (!instance) return <MainLayout><div className="text-center py-20"><h2 className="text-2xl font-bold">Instancia no encontrada</h2><Link to="/"><Button className="mt-4">Volver al Panel</Button></Link></div></MainLayout>;
+  if (loading) return (
+    <MainLayout>
+        <div className="animate-pulse space-y-8 p-10">
+            <div className="h-12 w-48 bg-white/5 rounded-xl" />
+            <div className="h-96 bg-white/5 rounded-[48px]" />
+        </div>
+    </MainLayout>
+  );
+
+  if (!instance) return (
+    <MainLayout>
+        <div className="flex flex-col items-center justify-center py-40">
+            <div className="bg-red-500/10 p-6 rounded-[32px] mb-6">
+                <AlertCircle className="w-12 h-12 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-black text-white tracking-tight">Instancia no encontrada</h2>
+            <Link to="/">
+                <Button className="mt-8 bg-cyan-500 text-[#0f172a] font-bold px-8 h-12 rounded-2xl shadow-xl shadow-cyan-500/20">Volver al Panel</Button>
+            </Link>
+        </div>
+    </MainLayout>
+  );
 
   return (
     <MainLayout>
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-white/5 p-6 rounded-[40px] border border-white/10 backdrop-blur-xl shadow-sm">
+          <div className="flex items-center gap-6">
             <Link to="/">
-              <Button variant="ghost" size="icon" className="rounded-xl hover:bg-accent">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
+                <Button variant="outline" size="icon" className="h-14 w-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 hover:border-cyan-500/50 shadow-sm transition-all group">
+                    <ArrowLeft className="w-5 h-5 text-slate-400 group-hover:text-cyan-400" />
+                </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">{instance.name}</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="rounded-full px-3 py-0.5 font-bold bg-primary/5">
-                  {instance.phone_number || 'Sin vincular'}
-                </Badge>
-                <div className="flex items-center gap-1.5 ml-2">
-                  <div className={cn(
-                    "w-2 h-2 rounded-full", 
-                    instance.status === 'connected' ? "bg-green-500" : 
-                    instance.status === 'expired' ? "bg-rose-500 animate-pulse" : "bg-red-500"
-                  )} />
-                  <span className={cn(
-                    "text-xs font-bold uppercase tracking-widest",
-                    instance.status === 'expired' ? "text-rose-500" : "text-muted-foreground"
-                  )}>
-                    {instance.status === 'connected' ? 'Conectado' : 
-                     instance.status === 'expired' ? 'Re-vinculación requerida' : 
-                     instance.status === 'qr_ready' ? 'Esperando Escaneo' : 'Desconectado'}
-                  </span>
+                <h1 className="text-3xl font-black text-white tracking-tight">{instance.name}</h1>
+                <div className="flex items-center gap-3 mt-1.5">
+                    <div className={cn(
+                        "flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                        instance.status === 'connected' ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-white/5 text-slate-500 border border-white/10"
+                    )}>
+                        <div className={cn("w-2 h-2 rounded-full", instance.status === 'connected' ? "bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" : "bg-slate-600")} />
+                        {instance.status === 'connected' ? 'Servicio Activo' : 'Offline'}
+                    </div>
                 </div>
-              </div>
             </div>
           </div>
-
-          {instance.status === 'connected' && (
-            <Button 
-              onClick={() => setIsChatOpen(true)}
-              className="rounded-2xl h-12 px-6 font-bold gap-2 bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20"
-            >
-              <MessageSquare className="w-5 h-5" /> Abrir WhatsApp Web
-            </Button>
-          )}
-
-          {(instance.status === 'qr_ready' || instance.status === 'expired' || instance.status === 'disconnected') && (
-            <Button 
-              onClick={handleShowQR}
-              className="rounded-2xl h-12 px-8 font-black gap-3 bg-amber-500 hover:bg-amber-600 text-black shadow-xl shadow-amber-500/10 uppercase tracking-widest text-xs"
-            >
-              <QrCode className="w-5 h-5" /> {instance.status === 'qr_ready' ? 'Ver Código QR' : 'Re-vincular WhatsApp'}
-            </Button>
-          )}
+          
+          <div className="flex items-center gap-4 bg-white/5 p-3 rounded-2xl border border-white/10">
+             <div className="flex flex-col items-end px-3">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Bot Enabled</span>
+                <span className={cn("text-xs font-black", instance.bot_enabled ? "text-cyan-400" : "text-slate-500")}>
+                    {instance.bot_enabled ? 'RESPUESTA IA ACTIVA' : 'RESPUESTA MANUAL'}
+                </span>
+             </div>
+             <Switch 
+                checked={instance.bot_enabled} 
+                onCheckedChange={(checked) => toggleBot(instance.id, checked)}
+                className="data-[state=checked]:bg-cyan-500"
+             />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            <Card className="rounded-[32px] border-border/50 overflow-hidden shadow-sm">
-              <CardHeader className="bg-accent/30 border-b border-border/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-xl">
-                      <Bot className="w-5 h-5 text-primary" />
-                    </div>
-                    <CardTitle className="text-lg font-bold">Configuración del Bot</CardTitle>
+            
+            <Card className="rounded-[48px] border-white/5 overflow-hidden bg-white/5 backdrop-blur-xl shadow-2xl">
+               <CardHeader className="p-10 pb-6 bg-white/5">
+                  <div className="flex items-center gap-5">
+                     <div className="p-4 bg-cyan-500 rounded-3xl shadow-lg shadow-cyan-500/20">
+                        <Brain className="w-8 h-8 text-[#0f172a]" />
+                     </div>
+                     <div>
+                        <CardTitle className="text-2xl font-black text-white tracking-tight leading-none mb-1">Cerebro y Alcance</CardTitle>
+                        <p className="text-base text-slate-400 font-medium">Configura quién responde y en qué conversaciones.</p>
+                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-muted-foreground">Bot Activo</span>
-                    <Switch 
-                      checked={instance.bot_enabled} 
-                      onCheckedChange={(checked) => toggleBot(instance.id, checked)}
-                    />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-8 space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Agente Asignado</label>
-                    <Select 
-                      value={instance.agent_id}
-                      onValueChange={handleAgentChange}
-                    >
-                      <SelectTrigger className="rounded-xl font-bold h-10 bg-white/5 border-white/10">
-                        <SelectValue placeholder="Seleccionar Agente" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#0d0e12] border-white/10 text-white rounded-xl">
-                        {agents.map(agent => (
-                          <SelectItem key={agent.id} value={agent.id}>
-                            <div className="flex items-center gap-2">
-                              <User className="w-3 h-3 text-purple-500" />
-                              {agent.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Personalidad Rápida (Legacy)</label>
-                    <Button 
-                      variant="outline" 
-                      className="w-full rounded-xl font-bold justify-between h-10 border-white/10"
-                      onClick={() => setIsPersonalityModalOpen(true)}
-                    >
-                      <span className="truncate">{instance.personality ? 'Personalizada' : 'Default'}</span>
-                      <Sparkles className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Alcance de Respuesta</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'all', label: 'Todos' },
-                        { id: 'groups', label: 'Grupos' },
-                        { id: 'specific', label: 'Específicos' }
-                      ].map((scope) => (
-                        <Button 
-                          key={scope.id}
-                          variant={instance.scope === scope.id ? 'default' : 'outline'}
-                          className="rounded-xl font-bold h-10 border-white/10"
-                          size="sm"
-                          onClick={() => changeScope(instance.id, scope.id as any)}
-                        >
-                          {scope.label}
-                        </Button>
-                      ))}
-                    </div>
-                </div>
-
-                <div className="p-6 rounded-2xl bg-accent/30 border border-border/50 space-y-4">
-                  <div className="flex items-center gap-2 text-primary">
-                    <Shield className="w-5 h-5" />
-                    <h4 className="font-bold">Controles de Seguridad</h4>
-                  </div>
-                  <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-                    El bot solo responderá a consultas de productos basadas en tus datos de ecommerce. No participará en conversaciones fuera de tema.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-[32px] border-border/50 overflow-hidden shadow-sm">
-              <CardHeader className="bg-accent/30 border-b border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-xl">
-                    <History className="w-5 h-5 text-primary" />
-                  </div>
-                  <CardTitle className="text-lg font-bold">Actividad Reciente</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-border/50 max-h-[400px] overflow-y-auto">
-                  {logs.length > 0 ? logs.map((log, idx) => (
-                    <div key={idx} className="p-4 flex items-start gap-4 hover:bg-accent/20 transition-colors">
-                      <div className={cn(
-                        "p-2 rounded-lg shrink-0",
-                        log.type === 'bot' ? "bg-primary/10 text-primary" : "bg-accent text-muted-foreground"
-                      )}>
-                        {log.type === 'bot' ? <Bot className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-xs font-bold truncate max-w-[150px]">{log.sender_name || 'Desconocido'}</span>
-                          <span className="text-[10px] font-medium text-muted-foreground">
-                            {log.created_at ? new Date(log.created_at).toLocaleTimeString() : 'Ahora'}
-                          </span>
+               </CardHeader>
+               <CardContent className="p-10 space-y-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                     <div className="space-y-8">
+                        <div className="space-y-2">
+                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-[3px] ml-1">Agente IA</label>
+                            <Select 
+                                value={instance.agent_id || "none"} 
+                                onValueChange={(val) => assignAgent(instance.id, val === "none" ? null : val)}
+                            >
+                                <SelectTrigger className="h-16 bg-white/5 border-2 border-white/10 rounded-3xl font-black text-white shadow-sm focus:ring-cyan-500/20">
+                                    <SelectValue placeholder="Seleccionar agente..." />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-3xl border-white/10 shadow-2xl p-2 bg-[#0f172a] text-white">
+                                    <SelectItem value="none" className="font-bold text-slate-500 py-3 rounded-2xl">🔴 Sin Agente</SelectItem>
+                                    {agents.map(agent => (
+                                        <SelectItem key={agent.id} value={agent.id} className="font-black py-3 rounded-2xl">✨ {agent.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <p className="text-sm font-medium text-muted-foreground line-clamp-2">{log.text}</p>
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="p-8 text-center text-muted-foreground font-medium">
-                      No hay actividad registrada aún.
-                    </div>
-                  )}
-                </div>
-                <Button 
-                  variant="ghost" 
-                  className="w-full rounded-none h-12 font-bold text-primary hover:bg-primary/5"
-                  onClick={() => setIsChatOpen(true)}
-                >
-                  Ver en Chat en Vivo
-                </Button>
-              </CardContent>
+
+                        <div className="space-y-2">
+                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-[3px] ml-1">Alcance del Bot</label>
+                            <Select 
+                                defaultValue={instance.scope || "all"} 
+                                onValueChange={(val: any) => updateScope(val)}
+                            >
+                                <SelectTrigger className="h-16 bg-white/5 border-2 border-white/10 rounded-3xl font-black text-white shadow-sm focus:ring-cyan-500/20">
+                                    <SelectValue placeholder="Seleccionar alcance..." />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-3xl border-white/10 shadow-2xl p-2 bg-[#0f172a] text-white">
+                                    <SelectItem value="all" className="font-black py-3 rounded-2xl">🌍 Todas las Conversaciones</SelectItem>
+                                    <SelectItem value="groups" className="font-black py-3 rounded-2xl">👥 Solo Grupos</SelectItem>
+                                    <SelectItem value="specific" className="font-black py-3 rounded-2xl">🎯 Solo Chats Individuales</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                     </div>
+
+                     <div className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-[3px] ml-1">Tienda Asignada</label>
+                            <Select 
+                                value={instance.store_id || "none"} 
+                                onValueChange={(val) => assignStore(instance.id, val === "none" ? null : val)}
+                            >
+                                <SelectTrigger className="h-16 bg-white/5 border-2 border-white/10 rounded-3xl font-black text-white shadow-sm focus:ring-cyan-500/20">
+                                    <SelectValue placeholder="Seleccionar tienda..." />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-3xl border-white/10 shadow-2xl p-2 bg-[#0f172a] text-white">
+                                    <SelectItem value="none" className="font-bold text-slate-500 py-3 rounded-2xl">📦 Sin Tienda (Catálogo Global)</SelectItem>
+                                    {stores.map(store => (
+                                        <SelectItem key={store.id} value={store.id} className="font-black py-3 rounded-2xl">🏪 {store.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className={cn(
+                            "p-6 rounded-[32px] border-2 transition-all h-full flex flex-col justify-center",
+                            instance.store 
+                                ? "bg-green-500/5 border-green-500/20" 
+                                : "bg-orange-500/5 border-orange-500/20 border-dashed"
+                        )}>
+                             <div className="flex items-center gap-3 mb-3">
+                                <Target className={cn("w-4 h-4", instance.store ? "text-green-500" : "text-orange-500")} />
+                                <span className={cn("text-[10px] font-black uppercase tracking-widest", instance.store ? "text-green-500" : "text-orange-500")}>
+                                    Contexto Operativo
+                                </span>
+                             </div>
+                             <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                                {instance.store 
+                                    ? `Este bot opera bajo el catálogo de "${instance.store.name}".`
+                                    : "⚠️ El bot usará todos los productos del workspace. Se recomienda asignar una tienda."}
+                             </p>
+                        </div>
+                     </div>
+                  </div>
+               </CardContent>
             </Card>
+
+            <div className="space-y-6">
+                <h3 className="text-sm font-black text-slate-500 uppercase tracking-[4px] ml-10">Actividad en Tiempo Real</h3>
+                <ActivityLog instanceId={instance.id} />
+            </div>
           </div>
 
           <div className="space-y-8">
-            <Card className="rounded-[32px] border-border/50 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-bold">Estado del Sistema</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Conexión</span>
-                  <Badge className={cn(
-                    "rounded-full border",
-                    instance.status === 'connected' ? "bg-green-500/10 text-green-500 border-green-500/20" : 
-                    instance.status === 'expired' ? "bg-rose-500/10 text-rose-500 border-rose-500/20" : 
-                    "bg-red-500/10 text-red-500 border-red-500/20"
-                  )}>
-                    {instance.status === 'connected' ? 'Estable' : 
-                     instance.status === 'expired' ? 'Fallida' : 'Inactiva'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Tiempo de actividad</span>
-                  <span className="text-sm font-bold">99.9%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Latencia</span>
-                  <span className="text-sm font-bold">142ms</span>
-                </div>
-                <div className="pt-4 border-t border-border/50 space-y-3">
-                  <Button 
-                    variant="outline" 
-                    className="w-full rounded-xl font-bold h-11 gap-2 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10"
-                    onClick={() => runConnectivityTest(instance.id)}
-                  >
-                    <Activity className="w-4 h-4" /> Diagnosticar Conexión
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full rounded-xl font-bold h-11 gap-2"
-                    onClick={() => restartInstance(instance.id)}
-                  >
-                    <History className="w-4 h-4" /> Reiniciar Sesión
-                  </Button>
-                </div>
-              </CardContent>
+            <Card className="rounded-[48px] border-white/5 bg-white/5 backdrop-blur-xl shadow-lg overflow-hidden">
+               <CardHeader className="p-8 border-b border-white/5 bg-white/5">
+                  <CardTitle className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                     <Clock className="w-3 h-3" /> Resumen Operativo
+                  </CardTitle>
+               </CardHeader>
+               <CardContent className="p-8 space-y-8">
+                   <div className="space-y-6">
+                      <div className="flex justify-between">
+                         <span className="text-xs font-bold text-slate-500">Instancia Activa</span>
+                         <span className="text-xs font-black text-white uppercase">{instance.id.slice(0, 8)}...</span>
+                      </div>
+                      <div className="flex justify-between">
+                         <span className="text-xs font-bold text-slate-500">Última Conexión</span>
+                         <span className="text-xs font-black text-cyan-400">
+                            {instance.last_connected_at ? new Date(instance.last_connected_at).toLocaleString() : 'Nunca'}
+                         </span>
+                      </div>
+                   </div>
+
+                   <div className="flex flex-col gap-4">
+                      {instance.status === 'connected' && (
+                        <Link to={`/instances/${instance.id}/web`}>
+                          <Button className="w-full h-14 rounded-3xl font-black bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/20 gap-3 uppercase text-xs tracking-widest">
+                             <MessageSquare className="w-5 h-5" /> Abrir WhatsApp WebAI
+                          </Button>
+                        </Link>
+                      )}
+                      
+                      {['disconnected', 'expired'].includes(instance.status) ? (
+                        <Button 
+                          className="w-full h-14 rounded-3xl font-black bg-cyan-500 hover:bg-cyan-400 text-[#0f172a] shadow-lg shadow-cyan-500/20 gap-3 uppercase text-xs tracking-widest"
+                          onClick={() => { startInstance(instance.id, instance.name); setIsModalOpen(true); }}
+                        >
+                          <QrCode className="w-5 h-5" /> Vincular Dispositivo
+                        </Button>
+                      ) : instance.status === 'qr_ready' ? (
+                        <Button 
+                          className="w-full h-14 rounded-3xl font-black bg-orange-500 hover:bg-orange-400 text-[#0f172a] shadow-lg shadow-orange-500/20 gap-3 uppercase text-xs tracking-widest"
+                          onClick={() => setIsModalOpen(true)}
+                        >
+                          <QrCode className="w-5 h-5" /> Mostrar Código QR
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          className="w-full h-14 rounded-3xl font-black border-2 border-white/10 text-slate-400 hover:bg-white/5 hover:text-white gap-3 uppercase text-xs tracking-widest"
+                          onClick={() => startInstance(instance.id, instance.name)}
+                        >
+                          <History className="w-5 h-5" /> Reiniciar Motor
+                        </Button>
+                      )}
+                   </div>
+               </CardContent>
             </Card>
 
-            <Card className="rounded-[32px] border-destructive/20 bg-destructive/5 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-bold text-destructive">Zona de Peligro</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-xs font-medium text-destructive/80 leading-relaxed">
-                  Eliminar esta instancia borrará permanentemente todos los datos de sesión y configuraciones del bot. Esta acción no se puede deshacer.
-                </p>
-                <Button 
-                  variant="destructive" 
-                  className="w-full rounded-xl font-bold h-11 gap-2"
-                  onClick={() => {
-                    if (confirm('¿Estás seguro de que quieres eliminar esta instancia?')) {
-                      deleteInstance(instance.id);
-                      window.location.href = '/';
-                    }
-                  }}
-                >
-                  <Trash2 className="w-4 h-4" /> Eliminar Instancia
-                </Button>
-              </CardContent>
+            <Card className="rounded-[40px] border-red-500/20 bg-red-500/5 shadow-none overflow-hidden border">
+               <CardHeader className="p-8">
+                  <CardTitle className="text-xs font-black text-red-500 uppercase tracking-widest">Zona Crítica</CardTitle>
+               </CardHeader>
+               <CardContent className="p-8 pt-0 space-y-6">
+                  <p className="text-xs text-red-400/60 font-medium leading-relaxed">
+                     Esta acción eliminará permanentemente la instancia y cerrará la sesión de WhatsApp.
+                  </p>
+                  <Button 
+                    variant="destructive" 
+                    className="w-full h-12 rounded-2xl font-black bg-red-500 hover:bg-red-600 shadow-md shadow-red-500/20 gap-3 uppercase text-xs tracking-widest"
+                    onClick={() => {
+                        if (confirm('¿Confirmas la eliminación definitiva?')) {
+                            deleteInstance(instance.id);
+                            window.location.href = '/';
+                        }
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" /> Eliminar Instancia
+                  </Button>
+               </CardContent>
             </Card>
           </div>
         </div>
       </div>
-
-      <ChatModal
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        instanceId={instance.id}
-        instanceName={instance.name}
-        socket={socket}
-        onSendMessage={sendMessage}
-      />
-
-      <PersonalityModal
-        isOpen={isPersonalityModalOpen}
-        onClose={() => setIsPersonalityModalOpen(false)}
-        currentPersonality={instance.personality || ''}
-        globalPersonality={settings.personality || ''}
-        onSave={handleSavePersonality}
-      />
-
+      
       <QRCodeModal
-        isOpen={isQRModalOpen}
-        onClose={() => setIsQRModalOpen(false)}
-        onStartLinking={startLinking}
-        socket={socket}
-        instanceId={instance.id}
-        onSuccess={() => setIsQRModalOpen(false)}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAdd={addInstance}
+        instances={instances}
+        initialInstance={{ id: instance.id, name: instance.name }}
       />
     </MainLayout>
   );

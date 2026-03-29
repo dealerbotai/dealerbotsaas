@@ -1,4 +1,0 @@
-allowBuilds:
-  '@swc/core': false
-  esbuild: false
-  puppeteer: false

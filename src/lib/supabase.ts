@@ -1,18 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Vite solo expone variables que empiezan con VITE_
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Using the provided Supabase credentials for the project
+const SUPABASE_URL = "https://mnlqbmpbyybsfxtjjalb.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ubHFibXBieXlic2Z4dGpqYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNjI3NzIsImV4cCI6MjA4ODkzODc3Mn0.yq9_PFpCapgL0bFCsu5X8JEZMNdaImD7nCAl5OsYTL0";
 
-// Log de diagnóstico (solo visible en la consola del navegador)
-if (!supabaseUrl) {
-  console.warn("⚠️ VITE_SUPABASE_URL está vacía. Usando fallback de error.");
-} else {
-  console.log("✅ VITE_SUPABASE_URL detectada correctamente.");
-}
-
-// Inicialización del cliente con valores de fallback claros
-export const supabase = createClient(
-  supabaseUrl || 'https://missing-url-check-secrets.supabase.co', 
-  supabaseAnonKey || 'missing-key-check-secrets'
-);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);

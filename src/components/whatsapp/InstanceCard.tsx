@@ -1,9 +1,9 @@
-import { WhatsAppInstance } from '@/lib/api';
+import { WhatsAppInstance } from '@/hooks/use-whatsapp-instances';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, MessageSquare, Trash2, ExternalLink, Power, Bot } from 'lucide-react';
+import { MoreVertical, MessageSquare, Trash2, ExternalLink, Power, Bot, Activity, Settings, QrCode, Zap } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,130 +12,131 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 interface InstanceCardProps {
   instance: WhatsAppInstance;
   onToggleBot: (id: string, enabled: boolean) => void;
   onDelete: (id: string) => void;
-  onRestart?: (id: string) => void;
+  onStart: (id: string, name: string) => void;
 }
 
-export const InstanceCard = ({ instance, onToggleBot, onDelete, onRestart }: InstanceCardProps) => {
-  const statusColors = {
-    connected: 'bg-green-500/10 text-green-500 border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]',
-    disconnected: 'bg-red-500/10 text-red-500 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]',
-    connecting: 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]',
-    qr_ready: 'bg-blue-500/10 text-blue-500 border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.1)]',
-    expired: 'bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.1)]',
+export const InstanceCard = ({ instance, onToggleBot, onDelete, onStart }: InstanceCardProps) => {
+  const statusConfig = {
+    connected: { color: 'bg-cyan-400', label: 'En Línea', bg: 'bg-cyan-400/10', text: 'text-cyan-400' },
+    disconnected: { color: 'bg-slate-400', label: 'Offline', bg: 'bg-slate-400/10', text: 'text-slate-300' },
+    connecting: { color: 'bg-blue-400 animate-pulse', label: 'Conectando', bg: 'bg-blue-400/10', text: 'text-blue-300' },
+    qr_ready: { color: 'bg-orange-400 animate-pulse', label: 'QR Listo', bg: 'bg-orange-400/10', text: 'text-orange-300' },
+    loading: { color: 'bg-slate-500', label: 'Cargando', bg: 'bg-slate-500/10', text: 'text-slate-400' },
+    expired: { color: 'bg-red-400', label: 'Expirado', bg: 'bg-red-400/10', text: 'text-red-300' },
+    initializing: { color: 'bg-amber-400 animate-pulse', label: 'Iniciando', bg: 'bg-amber-400/10', text: 'text-amber-300' }
   };
 
-  const statusLabels = {
-    connected: 'Conectado',
-    disconnected: 'Desconectado',
-    connecting: 'Conectando',
-    qr_ready: 'QR Listo',
-    expired: 'Expirado',
-  };
+  const status = statusConfig[instance.status] || statusConfig.disconnected;
 
   return (
-    <Card className="dealerbot-card group relative overflow-hidden border-white/5 hover:border-amber-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/5 rounded-3xl p-1">
-      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-      
-      <CardHeader className="flex flex-row items-center justify-between pb-4 relative z-10">
-        <div className="flex items-center gap-4">
+    <motion.div 
+      whileHover={{ y: -5 }}
+      className="glass-card group relative overflow-hidden"
+    >
+      <CardHeader className="flex flex-row items-center justify-between pb-6 space-x-4">
+        <div className="flex items-center gap-5">
           <div className={cn(
-            "p-4 rounded-2xl transition-all duration-500 border border-white/5 shadow-inner",
-            instance.status === 'connected' ? "bg-amber-500/10 text-amber-500" : "bg-white/5 text-gray-500"
+            "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500",
+            instance.status === 'connected' ? "bg-cyan-500/20 text-cyan-400 ai-glow" : "bg-white/10 text-slate-400"
           )}>
-            <MessageSquare className="w-6 h-6" />
+            {instance.status === 'connected' ? <Bot className="w-7 h-7" /> : <MessageSquare className="w-7 h-7" />}
           </div>
-          <div>
-            <CardTitle className="text-lg font-black tracking-tight text-white uppercase italic">{instance.name}</CardTitle>
-            <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">{instance.phone_number || 'Sin vincular'}</p>
+          <div className="min-w-0">
+            <CardTitle className="text-lg font-black text-white truncate tracking-tight uppercase">{instance.name}</CardTitle>
+            <p className="text-[10px] text-slate-300 font-black font-mono uppercase tracking-widest mt-1">
+                {instance.phone_number || 'SIN VINCULAR'}
+            </p>
           </div>
         </div>
+        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-colors">
+            <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9 hover:bg-white/10 text-slate-300">
               <MoreVertical className="w-5 h-5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-[#0d0e12] border-white/5 rounded-2xl shadow-2xl backdrop-blur-xl">
-            <DropdownMenuItem asChild>
-              <Link to={`/instances/${instance.id}`} className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest text-gray-400 focus:text-white focus:bg-white/5 cursor-pointer">
-                <ExternalLink className="w-4 h-4 text-amber-500" /> Ver Detalles
+          <DropdownMenuContent align="end" className="rounded-2xl border-white/10 bg-[#0f172a] shadow-2xl min-w-[180px] p-2">
+            <DropdownMenuItem asChild className="rounded-xl focus:bg-white/10 focus:text-white cursor-pointer">
+              <Link to={`/instances/${instance.id}`} className="flex items-center gap-3 p-2.5 text-xs font-bold uppercase tracking-widest text-slate-200">
+                <ExternalLink className="w-4 h-4 text-cyan-400" /> Detalles
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem 
-              className="text-red-400 focus:text-red-300 focus:bg-red-400/5 flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest cursor-pointer"
+              className="rounded-xl focus:bg-red-500/20 focus:text-red-400 text-red-400 cursor-pointer flex items-center gap-3 p-2.5 text-xs font-bold uppercase tracking-widest"
               onClick={() => onDelete(instance.id)}
             >
-              <Trash2 className="w-4 h-4" /> Eliminar Instancia
+              <Trash2 className="w-4 h-4" /> Eliminar
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
 
-      <CardContent className="space-y-8 pt-2 relative z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-2">
-            <span className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em]">Estado Global</span>
-            <Badge variant="outline" className={cn("capitalize px-4 py-1.5 rounded-full font-black text-[10px] tracking-widest border-white/5", statusColors[instance.status])}>
-              {statusLabels[instance.status]}
-            </Badge>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <span className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em]">IA Automatizada</span>
-            <div className="flex items-center gap-4">
-              <span className={cn("text-[10px] font-black tracking-widest", instance.bot_enabled ? "text-amber-500" : "text-gray-600")}>
-                {instance.bot_enabled ? 'SISTEMA ON' : 'SISTEMA OFF'}
-              </span>
-              <Switch
-                checked={instance.bot_enabled}
-                onCheckedChange={(checked) => onToggleBot(instance.id, checked)}
-                className="data-[state=checked]:bg-amber-500 border-white/10"
-              />
+      <CardContent className="space-y-8 pt-2">
+         <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10">
+            <div className="flex items-center gap-3">
+                <div className={cn("w-2.5 h-2.5 rounded-full", status.color, instance.status === 'connected' && "ai-glow")} />
+                <span className={cn("text-[10px] font-black uppercase tracking-[2px]", status.text)}>{status.label}</span>
             </div>
-          </div>
-        </div>
+            <div className="flex items-center gap-3 bg-slate-950/50 px-3 py-1.5 rounded-xl border border-white/10">
+                <Zap className={cn("w-3 h-3", instance.bot_enabled ? "text-orange-400" : "text-slate-500")} />
+                <span className={cn("text-[9px] font-black tracking-widest", instance.bot_enabled ? "text-white" : "text-slate-400")}>
+                    {instance.bot_enabled ? 'AI ON' : 'AI OFF'}
+                </span>
+                <Switch
+                  checked={instance.bot_enabled}
+                  onCheckedChange={(checked) => onToggleBot(instance.id, checked)}
+                  className="scale-75 data-[state=checked]:bg-cyan-500"
+                />
+            </div>
+         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white/5 rounded-2xl p-4 border border-white/5 group-hover:bg-white/10 transition-colors">
-            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Alcance de IA</p>
-            <p className="text-xs font-black text-white uppercase tracking-tighter italic">
-              {instance.scope === 'all' ? 'Red Completa' : instance.scope === 'groups' ? 'Grupos Logísticos' : 'Canal Específico'}
-            </p>
-          </div>
-          <div className="bg-white/5 rounded-2xl p-4 border border-white/5 group-hover:bg-white/10 transition-colors">
-            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Prioridad</p>
-            <p className="text-xs font-black text-white uppercase tracking-tighter italic">Alta Disponibilidad</p>
-          </div>
-        </div>
+         <div className="flex justify-between px-2">
+            <div className="flex flex-col">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[3px] mb-2">Alcance</span>
+                <span className="text-xs font-black text-white uppercase tracking-widest">{instance.scope || 'Todos'}</span>
+            </div>
+            <div className="flex flex-col items-end">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[3px] mb-2">Última Actividad</span>
+                <span className="text-xs font-black text-white tracking-widest">
+                    {instance.last_connected_at ? new Date(instance.last_connected_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--'}
+                </span>
+            </div>
+         </div>
       </CardContent>
 
-      <CardFooter className="pt-2 pb-6 relative z-10 flex flex-col gap-3">
-        {instance.status === 'expired' || instance.status === 'disconnected' ? (
+      <CardFooter className="pt-4">
+        {['disconnected', 'expired'].includes(instance.status) ? (
           <Button 
-            onClick={() => onRestart?.(instance.id)}
-            className="w-full h-12 rounded-2xl bg-amber-500 hover:bg-amber-600 text-black font-black text-[10px] tracking-[0.2em] border border-amber-400/50 transition-all uppercase group/btn"
+            className="w-full rounded-2xl font-black h-12 gap-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white uppercase text-xs tracking-widest ai-glow-hover"
+            onClick={() => onStart(instance.id, instance.name)}
           >
-            <div className="flex items-center justify-center gap-3">
-              Re-vincular Sesión
-              <Power className="w-4 h-4 transition-transform group-hover/btn:rotate-12" />
-            </div>
+            <Power className="w-4 h-4" /> Iniciar Motor
+          </Button>
+        ) : instance.status === 'qr_ready' ? (
+          <Button 
+            className="w-full rounded-2xl font-black h-12 gap-3 bg-orange-500 hover:bg-orange-400 text-[#0f172a] uppercase text-xs tracking-widest ai-glow-hover"
+            onClick={() => onStart(instance.id, instance.name)}
+          >
+            <QrCode className="w-4 h-4" /> Escanear QR
           </Button>
         ) : (
           <Button 
-            asChild 
-            className="w-full h-12 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-black text-[10px] tracking-[0.2em] border border-white/5 transition-all uppercase group/btn"
+            variant="outline" 
+            className="w-full rounded-2xl font-black h-12 gap-3 border-white/20 text-slate-200 hover:bg-white/10 hover:text-white hover:border-white/30 transition-all uppercase text-xs tracking-widest"
+            asChild
           >
-            <Link to={`/instances/${instance.id}`} className="flex items-center justify-center gap-3">
-              Acceder al Panel de Agente
-              <ExternalLink className="w-4 h-4 text-amber-500 transition-transform group-hover/btn:translate-x-1" />
+            <Link to={`/instances/${instance.id}`}>
+              <Settings className="w-4 h-4" /> Configuración
             </Link>
           </Button>
         )}
       </CardFooter>
-    </Card>
+    </motion.div>
   );
 };
