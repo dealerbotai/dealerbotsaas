@@ -163,9 +163,9 @@ export const useWhatsApp = () => {
             if (data.error) toast.error(`Error en instancia: ${data.error}`);
         };
 
-        const handleQR = (data: { tempId: string; qr: string }) => {
+        const handleQR = (data: { instanceId: string; qr: string }) => {
             setInstances(prev => prev.map(inst => 
-                inst.id === data.tempId ? { ...inst, status: 'qr_ready', qr: data.qr } : inst
+                inst.id === data.instanceId ? { ...inst, status: 'qr_ready', qr: data.qr } : inst
             ));
         };
 

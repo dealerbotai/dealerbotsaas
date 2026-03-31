@@ -39,22 +39,35 @@ export const ScraperSection = ({ url, onUrlChange, onScrape, loading }: ScraperS
       return;
     }
     
+    setScrapedProducts([]);
+    setShowProductList(false);
+
     try {
+      console.log('Iniciando escaneo de:', url);
       const response = await fetch('/api/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })
       });
       
-      if (!response.ok) throw new Error('Error al escanear la URL');
-      
       const data = await response.json();
-      setScrapedProducts(data.products || []);
-      setShowProductList(true);
-      setSelectedProducts(new Set());
-      toast.success(`Se encontraron ${data.products?.length || 0} productos`);
+      console.log('Datos recibidos del servidor:', data);
+
+      if (!response.ok) throw new Error(data.error || 'Error al escanear la URL');
+      
+      if (data.products && data.products.length > 0) {
+        setScrapedProducts(data.products);
+        setShowProductList(true);
+        setSelectedProducts(new Set());
+        toast.success(`Se encontraron ${data.products.length} productos`);
+      } else {
+        setShowProductList(true); // Mostrar la lista aunque esté vacía para ver el mensaje de error de "no productos"
+        setScrapedProducts([]);
+        toast.error('No se detectaron productos automáticos.');
+      }
     } catch (error: any) {
-      toast.error(error.message || 'Error al escanear la URL');
+      console.error('Error en handleScrape:', error);
+      toast.error(error.message || 'Error al conectar con el servidor de escaneo');
     }
   };
 

@@ -1,109 +1,137 @@
+import * as cheerio from 'cheerio';
+import { logger } from '../utils/logger.js';
+
 export async function scrapeProducts(url, workspaceId) {
   try {
-    // Validate URL
     if (!url || !isValidUrl(url)) {
       throw new Error('URL inválida');
     }
 
-    // Fetch the page
+    logger.info('SCRAPER', `Conectando a: ${url}...`);
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Referer': 'https://www.google.com/'
       }
     });
 
     if (!response.ok) {
-      throw new Error(`Error al acceder a la URL: ${response.status}`);
+      throw new Error(`Error ${response.status}: La web bloqueó el acceso.`);
     }
 
     const html = await response.text();
     const $ = cheerio.load(html);
+    const baseUrl = new URL(url).origin;
 
-    // Extract products based on common e-commerce patterns
-    const products = [];
+    let products = [];
     
-    // Try different selectors for product listings
-    const productSelectors = [
-      '[data-product]',
-      '.product',
-      '.item',
-      '.product-item',
-      '.product-card',
-      '[itemtype*="Product"]',
-      '.Product',
-      '.product-list > div',
-      '.products > div'
-    ];
+    // 1. JSON-LD (La más fiable)
+    logger.info('SCRAPER', 'Buscando metadatos JSON-LD...');
+    $('script[type="application/ld+json"]').each((_, el) => {
+        try {
+            const content = $(el).html();
+            if (!content) return;
+            const data = JSON.parse(content);
+            
+            const processItem = (item) => {
+                if (!item) return;
+                const type = item['@type'];
+                const isProduct = type === 'Product' || (Array.isArray(type) && type.includes('Product'));
+                
+                if (isProduct) {
+                    const name = item.name || '';
+                    if (name.length < 2) return;
 
-    let productElements = $();
-    for (const selector of productSelectors) {
-      const elements = $(selector);
-      if (elements.length > 0) {
-        productElements = elements;
-        break;
-      }
-    }
+                    products.push({
+                        id: generateProductId(name),
+                        name: name,
+                        description: item.description || '',
+                        price: parseFloat(item.offers?.price || item.offers?.[0]?.price || 0) || 0,
+                        image_url: resolveUrl(item.image?.[0] || item.image || '', baseUrl),
+                        url: resolveUrl(item.url || '', baseUrl) || url,
+                        category: item.category || ''
+                    });
+                }
+            };
 
-    // If no specific product elements found, try to find repeated patterns
-    if (productElements.length === 0) {
-      // Look for repeated elements that might be products
-      const allDivs = $('div');
-      const repeatedClasses = new Map();
-      
-      allDivs.each((_, el) => {
-        const className = $(el).attr('class');
-        if (className) {
-          repeatedClasses.set(className, (repeatedClasses.get(className) || 0) + 1);
-        }
-      });
-
-      // Find classes that appear multiple times (likely product cards)
-      const productClass = Array.from(repeatedClasses.entries())
-        .filter(([_, count]) => count >= 2 && count <= 20)
-        .sort((a, b) => b[1] - a[1])[0]?.[0];
-
-      if (productClass) {
-        productElements = $(`.${productClass}`);
-      }
-    }
-
-    // Extract product data
-    productElements.slice(0, 50).each((_, element) => {
-      const $el = $(element);
-      
-      // Try to extract product information
-      const name = $el.find('h1, h2, h3, h4, .title, .name, .product-title, .product-name').first().text().trim() ||
-                   $el.find('a').first().attr('title')?.trim() ||
-                   $el.find('img').first().attr('alt')?.trim() ||
-                   'Producto sin nombre';
-
-      const priceText = $el.find('.price, .product-price, .current-price, [itemprop="price"]').first().text().trim();
-      const price = parseFloat(priceText.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-
-      const imageUrl = $el.find('img').first().attr('src') ||
-                       $el.find('img').first().attr('data-src') ||
-                       $el.find('img').first().attr('data-lazy-src') ||
-                       '';
-
-      const description = $el.find('.description, .product-description, .short-description').first().text().trim().substring(0, 200);
-
-      if (name && name !== 'Producto sin nombre') {
-        products.push({
-          id: generateProductId(name),
-          name,
-          description,
-          price,
-          image_url: imageUrl,
-          url: $el.find('a').first().attr('href') || '',
-          category: extractCategory($el)
-        });
-      }
+            if (Array.isArray(data)) {
+                data.forEach(processItem);
+            } else if (data['@graph'] && Array.isArray(data['@graph'])) {
+                data['@graph'].forEach(processItem);
+            } else if (data.itemListElement && Array.isArray(data.itemListElement)) {
+                data.itemListElement.forEach(li => processItem(li.item));
+            } else {
+                processItem(data);
+            }
+        } catch (e) { }
     });
 
-    // Deduplicate products
+    // 2. DOM Scraping (Si no hubo JSON-LD suficiente)
+    if (products.length < 2) {
+        logger.info('SCRAPER', 'JSON-LD insuficiente, usando selectores DOM...');
+        const containers = $('.product, .product-card, .product-item, .item, li.product, article, [class*="product-card"], [class*="item-card"]');
+        
+        containers.each((_, el) => {
+            const $el = $(el);
+            let name = $el.find('h1, h2, h3, h4, .title, .name, [class*="title"], [class*="name"]').first().text().trim();
+            if (!name) name = $el.find('img').attr('alt')?.trim();
+
+            const priceText = $el.find('[class*="price"], .price, [itemprop="price"]').text().trim();
+            const priceMatches = priceText.match(/[\d.,]{2,}/);
+            const price = priceMatches ? parseFloat(priceMatches[0].replace('.', '').replace(',', '.')) : 0;
+
+            let imageUrl = $el.find('img').attr('src') || $el.find('img').attr('data-src') || '';
+            
+            if (name && name.length > 3 && (price > 0 || imageUrl)) {
+                products.push({
+                    id: generateProductId(name),
+                    name,
+                    description: $el.find('[class*="description"], .summary').text().trim().substring(0, 100),
+                    price,
+                    image_url: resolveUrl(imageUrl, baseUrl),
+                    url: resolveUrl($el.find('a').attr('href') || '', baseUrl),
+                    category: ''
+                });
+            }
+        });
+    }
+
+    // 3. FALLBACK FINAL: Modo "Busca lo que sea"
+    if (products.length === 0) {
+        logger.warn('SCRAPER', 'No se encontraron productos estructurados, usando modo heurístico...');
+        $('div').each((_, el) => {
+            const $el = $(el);
+            const hasImg = $el.find('img').length > 0;
+            const text = $el.text().trim();
+            const hasPrice = text.includes('$') || text.includes('€');
+            
+            if (hasImg && hasPrice && text.length < 300) {
+                const name = $el.find('img').attr('alt')?.trim() || $el.find('a').text().trim().substring(0, 50);
+                if (name && name.length > 5) {
+                    products.push({
+                        id: generateProductId(name),
+                        name,
+                        description: '',
+                        price: 0,
+                        image_url: resolveUrl($el.find('img').attr('src'), baseUrl),
+                        url: resolveUrl($el.find('a').attr('href'), baseUrl),
+                        category: ''
+                    });
+                }
+            }
+        });
+    }
+
+    // Limpieza final
     const uniqueProducts = Array.from(
       new Map(products.map(p => [p.name.toLowerCase(), p])).values()
-    );
+    ).filter(p => p.name && p.name.length > 2);
+
+    logger.success('SCRAPER', `✅ Escaneo finalizado: ${uniqueProducts.length} productos detectados`);
 
     return {
       success: true,
@@ -113,9 +141,21 @@ export async function scrapeProducts(url, workspaceId) {
     };
 
   } catch (error) {
-    console.error('Scraping error:', error);
+    logger.error('SCRAPER', `Error en servicio de escaneo: ${error.message}`, error);
     throw error;
   }
+}
+
+function resolveUrl(url, base) {
+    if (!url) return '';
+    if (url.startsWith('data:')) return url;
+    try {
+        if (url.startsWith('http')) return url;
+        if (url.startsWith('//')) return `https:${url}`;
+        return new URL(url, base).href;
+    } catch (e) {
+        return url;
+    }
 }
 
 function isValidUrl(string) {
@@ -128,11 +168,5 @@ function isValidUrl(string) {
 }
 
 function generateProductId(name) {
-  return `scraped_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
-
-function extractCategory($el) {
-  // Try to find category in breadcrumbs or meta tags
-  const category = $el.find('[itemprop="category"], .category, .product-category').first().text().trim();
-  return category || '';
+  return `sc_${Math.random().toString(36).substr(2, 5)}`;
 }

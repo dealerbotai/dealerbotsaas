@@ -7,7 +7,16 @@ import { dirname } from 'path';
 import fs from 'fs';
 
 import WhatsAppClient from './services/whatsapp/client.js';
-import { decrypt } from './utils/crypto.js';
+import { getMessageContext } from './middleware/context-router.js';
+import { groqChat } from './services/ai/groq-client.js';
+import { logger } from './utils/logger.js';
+
+// Comandos
+import { handleInicio } from './commands/inicio.js';
+import { handleCierre } from './commands/cierre.js';
+import { handleCancelar } from './commands/cancelar.js';
+import { handleVenta } from './commands/venta.js';
+import { handleVincular } from './commands/vincular.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,10 +28,10 @@ dotenv.config({ path: envPath });
 const { id, name, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = workerData;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-const chatCache = new Map();
-const CACHE_TTL = 30000;
+let sock = null;
 
 async function startWorker() {
+    logger.worker(id, `Iniciando motor para ${name}...`);
     
     const client = new WhatsAppClient(supabase, {
         instanceId: id,
@@ -33,16 +42,23 @@ async function startWorker() {
                     parentPort.postMessage({ type: 'qr', qr: data.qr });
                     break;
                 case 'ready':
+                    logger.worker(id, `Motor listo para operar (${data.phoneNumber})`, 'success');
                     parentPort.postMessage({ type: 'ready', phoneNumber: data.phoneNumber });
                     break;
                 case 'expired':
+                    logger.worker(id, `Sesión de WhatsApp expirada`, 'error');
                     parentPort.postMessage({ type: 'expired', message: data.message });
                     break;
             }
         }
     });
 
-    const sock = await client.connect();
+    try {
+        sock = await client.connect();
+    } catch (err) {
+        logger.worker(id, `Error conectando motor: ${err.message}`, 'error');
+        throw err;
+    }
 
     sock.ev.on('messages.upsert', async (upsert) => {
         if (upsert.type !== 'notify') return;
@@ -52,73 +68,125 @@ async function startWorker() {
             
             try {
                 const jid = msg.key.remoteJid;
-                if (jid.endsWith('@g.us')) continue;
-
                 const body = msg.message?.conversation || 
                              msg.message?.extendedTextMessage?.text || 
                              msg.message?.imageMessage?.caption;
 
                 if (!body) continue;
-                const pushName = msg.pushName || jid.split('@')[0];
 
-                let chatId = null;
-                const cacheKey = `${id}:${jid}`;
-                const cached = chatCache.get(cacheKey);
+                logger.bot(name, 'in', `${msg.pushName || jid}: ${body.substring(0, 50)}${body.length > 50 ? '...' : ''}`);
 
-                if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
-                    chatId = cached.id;
-                } else {
-                    const { data: chat, error } = await supabase
-                        .from('chats')
-                        .upsert({
-                            instance_id: id,
-                            external_id: jid,
-                            customer_name: pushName,
-                            last_message_at: new Date().toISOString()
-                        }, { onConflict: 'instance_id,external_id' })
-                        .select('id')
-                        .single();
-                    
-                    if (error) throw new Error(`Upsert error: ${error.message}`);
-                    chatId = chat.id;
-                    chatCache.set(cacheKey, { id: chatId, timestamp: Date.now() });
+                // 1. Identificar Contexto e Identificar si el Canal está Autorizado
+                const context = await getMessageContext(supabase, id, jid);
+                if (!context) continue;
+
+                // 2. Procesar Comandos Administrativos (Incluso en canales no vinculados aún)
+                if (body.startsWith('!vincular_canal')) {
+                    logger.worker(id, `Ejecutando comando administrativo: !vincular_canal`);
+                    const args = body.slice(15).trim().split(/ +/);
+                    const response = await handleVincular(supabase, id, jid, args);
+                    await client.sendMessage(jid, response, msg);
+                    continue;
                 }
 
-                if (!chatId) continue;
+                // 3. Lógica para Canales de Control (Comandos !)
+                if (context.type === 'CONTROL_CHANNEL') {
+                    if (!context.isAuthorized) continue; 
 
-                const aiReply = await getAIResponse(body, id, jid, chatId);
+                    if (body.startsWith('!')) {
+                        const args = body.slice(1).trim().split(/ +/);
+                        const command = args.shift().toLowerCase();
+                        let response = "";
+
+                        logger.worker(id, `Comando de control detectado: !${command}`);
+                        const groqService = (u, s) => groqChat(supabase, id, u, s);
+
+                        if (command === 'inicio') {
+                            response = await handleInicio(supabase, context, groqService);
+                        } else if (command === 'cierre') {
+                            response = await handleCierre(supabase, context, groqService);
+                        } else if (command === 'cancelar') {
+                            response = await handleCancelar(supabase, context, args);
+                        } else if (command === 'venta') {
+                            response = await handleVenta(supabase, context, body, jid);
+                        }
+
+                        if (response) {
+                            await client.sendMessage(jid, response, msg);
+                            logger.bot(name, 'out', `Respuesta a comando !${command}`);
+                        }
+                    }
+                    continue; 
+                }
+
+                // 4. Ignorar otros grupos no vinculados
+                if (context.type === 'UNAUTHORIZED_GROUP') continue;
+
+                // 5. REGISTRAR MENSAJE (Siempre, esté el bot activo o no)
+                const pushName = msg.pushName || jid.split('@')[0];
                 
-                const messagesToInsert = [
-                    { chat_id: chatId, sender_name: pushName, content: body, from_me: false, type: 'text' }
-                ];
+                // Buscar o crear chat
+                const { data: chat } = await supabase
+                    .from('chats')
+                    .upsert({
+                        instance_id: id,
+                        external_id: jid,
+                        customer_name: pushName,
+                        last_message_at: new Date().toISOString()
+                    }, { onConflict: 'instance_id,external_id' })
+                    .select()
+                    .single();
 
-                if (aiReply) {
-                    messagesToInsert.push({
-                        chat_id: chatId, sender_name: 'SalesBot', content: aiReply, from_me: true, type: 'bot'
+                if (chat) {
+                    await supabase.from('messages').insert({
+                        chat_id: chat.id,
+                        sender_name: pushName,
+                        content: body,
+                        from_me: false,
+                        type: 'text'
+                    });
+
+                    // Notificar a la UI
+                    parentPort.postMessage({
+                        type: 'message',
+                        message: { from: jid, body, pushname: pushName, chat_id: chat.id, to: id }
                     });
                 }
 
-                await supabase.from('messages').insert(messagesToInsert);
+                // 6. Lógica para respuesta de la IA (Solo si el bot está activo)
+                const { data: instStatus } = await supabase.from('instances').select('bot_enabled, bot_mode').eq('id', id).single();
+                
+                if (!instStatus?.bot_enabled || instStatus?.bot_mode !== 'BOT_ACTIVE') {
+                    continue;
+                }
 
-                parentPort.postMessage({
-                    type: 'message',
-                    message: { 
-                        from: jid, 
-                        body, 
-                        pushname: pushName, 
-                        to: sock.user.id, 
-                        chat_id: chatId,
-                        reply: aiReply || null
-                    }
-                });
-
+                logger.worker(id, `Solicitando respuesta IA para: ${pushName}`);
+                const aiReply = await getAIResponse(body, id, jid);
+                
                 if (aiReply) {
                     await client.sendMessage(jid, aiReply, msg);
-                    parentPort.postMessage({ type: 'bot-reply', reply: aiReply, to: jid });
+                    logger.bot(name, 'out', `Respuesta IA a ${pushName}`);
+                    
+                    if (chat) {
+                        await supabase.from('messages').insert({
+                            chat_id: chat.id,
+                            sender_name: 'AI Assistant',
+                            content: aiReply,
+                            from_me: true,
+                            type: 'bot'
+                        });
+                    }
+
+                    parentPort.postMessage({
+                        type: 'bot-reply',
+                        reply: aiReply,
+                        chat_id: chat?.id,
+                        to: jid
+                    });
                 }
 
             } catch (e) {
-                console.error(`⚠️ [WORKER] Error con ${msg.key.remoteJid}:`, e.message);
+                logger.worker(id, `Error procesando mensaje de ${msg.key.remoteJid}: ${e.message}`, 'error');
             }
         }
     });
@@ -127,99 +195,44 @@ async function startWorker() {
         try {
             if (cmd.type === 'send-message' && cmd.to && cmd.text) {
                 await client.sendMessage(cmd.to, cmd.text);
+                logger.bot(name, 'out', `Mensaje manual enviado a ${cmd.to}`);
+            }
+            
+            if (cmd.type === 'get-groups') {
+                try {
+                    if (!sock) {
+                        logger.worker(id, `Solicitud de grupos fallida: Socket no inicializado`, 'error');
+                        parentPort.postMessage({ type: 'groups-list', groups: [] });
+                        return;
+                    }
+                    logger.worker(id, `Sincronizando lista de grupos...`);
+                    const groups = await sock.groupFetchAllParticipating();
+                    const groupList = Object.values(groups).map(g => ({
+                        id: g.id,
+                        subject: g.subject
+                    }));
+                    logger.worker(id, `Grupos sincronizados: ${groupList.length}`, 'success');
+                    parentPort.postMessage({ type: 'groups-list', groups: groupList });
+                } catch (err) {
+                    logger.worker(id, `Error sincronizando grupos: ${err.message}`, 'error');
+                    parentPort.postMessage({ type: 'groups-list', groups: [] });
+                }
             }
         } catch (e) {
-            console.error('[WORKER] Error manual:', e.message);
+            logger.worker(id, `Error en comando worker: ${e.message}`, 'error');
         }
     });
 }
 
-async function callAI(userPrompt, systemPrompt, instanceId, chatHistory = "") {
-    try {
-        const { data: inst } = await supabase.from('instances').select('*').eq('id', instanceId).single();
-        if (!inst || inst.status !== 'connected') return null;
-
-        const { data: settings } = await supabase.from('settings').select('*').eq('workspace_id', inst.workspace_id).maybeSingle();
-        if (!settings) return null;
-
-        const groqKey = decrypt(settings.groq_api_key_encrypted) || process.env.GROQ_API_KEY;
-        if (!groqKey) return null;
-
-        // Lógica de filtrado por tienda
-        let query = supabase.from('products')
-            .select('name, price')
-            .eq('workspace_id', inst.workspace_id)
-            .eq('is_active', true);
-        
-        if (inst.store_id) {
-            query = query.eq('store_id', inst.store_id);
-        }
-
-        const { data: products } = await query.limit(30);
-
-        const catalog = products?.length > 0 ? products.map(p => `- ${p.name}: $${p.price}`).join('\n') : "Sin catálogo disponible.";
-        const groqModel = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
-        
-        const finalSystemPrompt = `${systemPrompt}\n\nCATÁLOGO DE PRODUCTOS:\n${catalog}\n\n` +
-            `HISTORIAL DE CONVERSACIÓN:\n${chatHistory || "No hay mensajes previos."}\n\n` +
-            `INSTRUCCIÓN: Usa el historial para dar seguimiento. Solo ofrece productos del catálogo listado arriba.`;
-
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${groqKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: groqModel,
-                messages: [
-                    { role: "system", content: finalSystemPrompt },
-                    { role: "user", content: userPrompt }
-                ],
-                temperature: 0.7, max_tokens: 400
-            })
-        });
-
-        if (!response.ok) return null;
-
-        const d = await response.json();
-        return d.choices?.[0]?.message?.content || null;
-
-    } catch (e) { 
-        console.error('❌ [IA] Error crítico:', e.message);
-        return null; 
-    }
-}
-
-async function getAIResponse(prompt, instanceId, remoteJid, chatId) {
-    let chatContext = "";
-    
-    try {
-        const { data: history } = await supabase
-            .from('messages')
-            .select('sender_name, content, from_me')
-            .eq('chat_id', chatId)
-            .order('created_at', { ascending: false })
-            .limit(6);
-
-        if (history && history.length > 0) {
-            chatContext = history.reverse().map(m => 
-                `${m.from_me ? 'Asistente' : 'Cliente'}: ${m.content}`
-            ).join('\n');
-        }
-    } catch (e) {}
-
-    try {
-        const { data: inst } = await supabase.from('instances')
-            .select('*, agent:agents(*)')
-            .eq('id', instanceId)
-            .single();
-        
-        if (!inst || !inst.bot_enabled || !inst.agent) return null;
-        
-        return await callAI(prompt, inst.agent.prompt_text || "Asistente atento.", instanceId, chatContext);
-    } catch (e) { 
-        return null; 
-    }
+/**
+ * Función auxiliar para obtener respuesta de la IA para clientes
+ */
+async function getAIResponse(prompt, instanceId, remoteJid) {
+    const systemPrompt = "Eres un asistente de ventas atento."; // Simplificado
+    return await groqChat(supabase, instanceId, prompt, systemPrompt);
 }
 
 startWorker().catch(e => {
+    logger.error('WORKER_FATAL', `Fallo crítico en hilo principal: ${e.message}`, e);
     process.exit(1);
 });
