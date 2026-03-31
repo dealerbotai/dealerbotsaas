@@ -390,7 +390,7 @@ export const useWhatsApp = () => {
             const workspaceId = await getWorkspaceId();
             if (!workspaceId) throw new Error('No se encontró un Workspace activo');
 
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+            const API_URL = import.meta.env.VITE_API_URL;
             const response = await fetch(`${API_URL}/api/scrape`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

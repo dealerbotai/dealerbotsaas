@@ -201,8 +201,8 @@ async function startWorker() {
             
             if (cmd.type === 'get-groups') {
                 try {
-                    if (!sock) {
-                        logger.worker(id, `Solicitud de grupos fallida: Socket no inicializado`, 'error');
+                    if (!sock || !sock.ws || sock.ws.readyState !== 1) {
+                        logger.worker(id, `Solicitud de grupos fallida: Conexión no activa (ReadyState: ${sock?.ws?.readyState || 'N/A'})`, 'warn');
                         parentPort.postMessage({ type: 'groups-list', groups: [] });
                         return;
                     }
