@@ -1,12 +1,12 @@
 import { 
     makeWASocket, 
-    useMultiFileAuthState, 
     DisconnectReason, 
     fetchLatestBaileysVersion,
     makeCacheableSignalKeyStore,
     Browsers,
     isJidBroadcast
 } from '@whiskeysockets/baileys';
+import { useSupabaseAuthState } from './auth.js';
 import { Boom } from '@hapi/boom';
 import pino from 'pino';
 import path from 'path';
@@ -24,15 +24,14 @@ class WhatsAppClient {
         this.name = options.name;
         this.onEvent = options.onEvent || (() => {});
         this.sock = null;
-        // Mover a la raíz del monorepo (3 niveles arriba desde services/whatsapp/)
-        this.authPath = path.join(__dirname, `../../../../auth_info_baileys/${this.instanceId}`);
     }
 
     async connect() {
-        const { state, saveCreds } = await useMultiFileAuthState(this.authPath);
+        // Usar la nueva persistencia en Supabase
+        const { state, saveCreds } = await useSupabaseAuthState(this.supabase, this.instanceId);
         const { version, isLatest } = await fetchLatestBaileysVersion();
         
-        logger.info('WHATSAPP', `Iniciando instancia "${this.name}" con Baileys v${version.join('.')}${isLatest ? ' (Latest)' : ''}`);
+        logger.info('WHATSAPP', `Iniciando instancia "${this.name}" con persistencia en Supabase`);
 
         this.sock = makeWASocket({
             version,
@@ -48,6 +47,7 @@ class WhatsAppClient {
             shouldIgnoreJid: (jid) => isJidBroadcast(jid)
         });
 
+        // Guardar credenciales en Supabase ante cualquier cambio
         this.sock.ev.on('creds.update', saveCreds);
 
         this.sock.ev.on('connection.update', async (update) => {

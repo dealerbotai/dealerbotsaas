@@ -13,7 +13,8 @@
   "scripts": {
     "client:dev": "pnpm --filter client dev",
     "server:dev": "pnpm --filter whatsapp-bot-server dev -- --env-file=../../.env",
-    "dev:all": "concurrently -n \"CLIENT,SERVER\" -c \"cyan,magenta\" \"pnpm run client:dev\" \"pnpm run server:dev\"",
+    "landing:dev": "pnpm --filter landing dev",
+    "dev:all": "concurrently -n \"CLIENT,SERVER,LANDING\" -c \"cyan,magenta,yellow\" \"pnpm run client:dev\" \"pnpm run server:dev\" \"pnpm run landing:dev\"",
     "build:all": "pnpm --filter \"*\" build",
     "install:all": "pnpm install"
   },
