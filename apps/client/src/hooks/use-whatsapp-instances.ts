@@ -171,6 +171,7 @@ export const useWhatsApp = () => {
         };
 
         const handleReady = (data: { instanceId: string; phoneNumber?: string }) => {
+            console.log('✅ Instancia lista (connected):', data.instanceId);
             setInstances(prev => prev.map(inst => 
                 inst.id === data.instanceId ? { ...inst, status: 'connected', phone_number: data.phoneNumber } : inst
             ));

@@ -25,6 +25,7 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, instances, initialInstance
   useEffect(() => {
     if (currentId) {
       const active = instances.find(i => i.id === currentId);
+      console.log('🔄 Estado actual de la instancia:', active?.status);
       if (active?.status === 'connected') {
         setStep('success');
       }
@@ -32,13 +33,16 @@ export const QRCodeModal = ({ isOpen, onClose, onAdd, instances, initialInstance
   }, [instances, currentId]);
 
   useEffect(() => {
-    if (isOpen && initialInstance) {
-      setCurrentId(initialInstance.id);
-      setName(initialInstance.name);
-      setStep('qr');
-    } else if (isOpen && !initialInstance && step !== 'success') {
-       // Reset if opening for new
-       // setStep('input'); 
+    if (isOpen) {
+      if (initialInstance) {
+        setCurrentId(initialInstance.id);
+        setName(initialInstance.name);
+        setStep('qr');
+      } else {
+        setStep('input');
+        setName('');
+        setCurrentId(null);
+      }
     }
   }, [isOpen, initialInstance]);
 
