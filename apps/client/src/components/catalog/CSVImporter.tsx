@@ -74,12 +74,25 @@ export const CSVImporter = ({ storeId, onComplete }: CSVImporterProps) => {
     
     setImporting(true);
     try {
+      // Obtener el workspace_id real del usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No se encontró sesión de usuario');
+
+      const { data: member, error: memberError } = await supabase
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (memberError || !member) throw new Error('No tienes un espacio de trabajo asignado');
+      const workspaceId = member.workspace_id;
+
       const API_URL = import.meta.env.VITE_API_URL;
       const response = await fetch(`${API_URL}/api/import-products`, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
-            'x-workspace-id': 'default' // Aquí podrías pasar el workspace_id real
+            'x-workspace-id': workspaceId
         },
         body: JSON.stringify({ products: preview, storeId })
       });
