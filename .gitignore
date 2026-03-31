@@ -197,3 +197,6 @@ sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/monodevelop,react,node,nextjs
 GEMINI.md
+
+.gemini/
+gha-creds-*.json

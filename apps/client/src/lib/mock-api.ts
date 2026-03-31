@@ -1,3 +1,4 @@
+import { supabase } from './supabase';
 import { generateAIResponse } from '@/services/ai';
 
 export interface WhatsAppInstance {
@@ -9,16 +10,11 @@ export interface WhatsAppInstance {
   lastActive?: string;
   qrCode?: string;
   scope: 'all' | 'groups' | 'specific';
-  specificConversations?: string[];
 }
 
 export interface ScrapedData {
   url: string;
-  products: {
-    name: string;
-    price: string;
-    description: string;
-  }[];
+  products: any[];
   lastScraped: string;
 }
 
@@ -28,91 +24,103 @@ export interface GlobalSettings {
   scrapedData?: ScrapedData;
 }
 
-// Helper para persistencia local
-const STORAGE_KEYS = {
-  INSTANCES: 'wa_bot_instances',
-  SETTINGS: 'wa_bot_settings'
-};
-
-const getStoredData = <T>(key: string, defaultValue: T): T => {
-  const stored = localStorage.getItem(key);
-  return stored ? JSON.parse(stored) : defaultValue;
-};
-
-const saveStoredData = (key: string, data: any) => {
-  localStorage.setItem(key, JSON.stringify(data));
-};
-
 export const mockApi = {
   getInstances: async () => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return getStoredData<WhatsAppInstance[]>(STORAGE_KEYS.INSTANCES, []);
+    const { data, error } = await supabase
+      .from('instances')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data as WhatsAppInstance[];
   },
 
   addInstance: async (name: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    const instances = getStoredData<WhatsAppInstance[]>(STORAGE_KEYS.INSTANCES, []);
-    const newInstance: WhatsAppInstance = {
-      id: Math.random().toString(36).substr(2, 9),
+    const newInstance = {
       name,
       status: 'qr_ready',
       botEnabled: false,
       qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=mock-whatsapp-qr-' + Date.now(),
       scope: 'all',
     };
-    const updated = [...instances, newInstance];
-    saveStoredData(STORAGE_KEYS.INSTANCES, updated);
-    return newInstance;
+
+    const { data, error } = await supabase
+      .from('instances')
+      .insert([newInstance])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as WhatsAppInstance;
   },
 
   connectInstance: async (id: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    const instances = getStoredData<WhatsAppInstance[]>(STORAGE_KEYS.INSTANCES, []);
-    const updated = instances.map((inst) =>
-      inst.id === id 
-        ? { 
-            ...inst, 
-            status: 'connected', 
-            phoneNumber: `+52 ${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-            lastActive: new Date().toISOString()
-          } 
-        : inst
-    );
-    saveStoredData(STORAGE_KEYS.INSTANCES, updated);
+    const { error } = await supabase
+      .from('instances')
+      .update({ 
+        status: 'connected', 
+        phoneNumber: `+52 ${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+        lastActive: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (error) throw error;
     return true;
   },
 
   toggleBot: async (id: string, enabled: boolean) => {
-    const instances = getStoredData<WhatsAppInstance[]>(STORAGE_KEYS.INSTANCES, []);
-    const updated = instances.map((inst) =>
-      inst.id === id ? { ...inst, botEnabled: enabled } : inst
-    );
-    saveStoredData(STORAGE_KEYS.INSTANCES, updated);
+    const { error } = await supabase
+      .from('instances')
+      .update({ botEnabled: enabled })
+      .eq('id', id);
+
+    if (error) throw error;
     return true;
   },
 
   deleteInstance: async (id: string) => {
-    const instances = getStoredData<WhatsAppInstance[]>(STORAGE_KEYS.INSTANCES, []);
-    const updated = instances.filter((inst) => inst.id !== id);
-    saveStoredData(STORAGE_KEYS.INSTANCES, updated);
+    const { error } = await supabase
+      .from('instances')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
     return true;
   },
 
   getSettings: async () => {
-    return getStoredData<GlobalSettings>(STORAGE_KEYS.SETTINGS, {
-      groqApiKey: '',
-      ecommerceUrl: '',
-    });
+    const { data, error } = await supabase
+      .from('settings')
+      .select('*')
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    
+    return data || { groqApiKey: '', ecommerceUrl: '' };
   },
 
   updateSettings: async (newSettings: Partial<GlobalSettings>) => {
-    const current = getStoredData<GlobalSettings>(STORAGE_KEYS.SETTINGS, {
-      groqApiKey: '',
-      ecommerceUrl: '',
-    });
-    const updated = { ...current, ...newSettings };
-    saveStoredData(STORAGE_KEYS.SETTINGS, updated);
-    return updated;
+    // Intentamos obtener el ID del primer registro de settings
+    const { data: existing } = await supabase.from('settings').select('id').limit(1).single();
+
+    let result;
+    if (existing) {
+      result = await supabase
+        .from('settings')
+        .update(newSettings)
+        .eq('id', existing.id)
+        .select()
+        .single();
+    } else {
+      result = await supabase
+        .from('settings')
+        .insert([newSettings])
+        .select()
+        .single();
+    }
+
+    if (result.error) throw result.error;
+    return result.data;
   },
 
   scrapeUrl: async (url: string): Promise<ScrapedData> => {
@@ -127,15 +135,12 @@ export const mockApi = {
       lastScraped: new Date().toISOString(),
     };
     
-    const settings = getStoredData<GlobalSettings>(STORAGE_KEYS.SETTINGS, { groqApiKey: '', ecommerceUrl: '' });
-    saveStoredData(STORAGE_KEYS.SETTINGS, { ...settings, ecommerceUrl: url, scrapedData: mockData });
-    
+    await mockApi.updateSettings({ ecommerceUrl: url, scrapedData: mockData });
     return mockData;
   },
 
-  // Nueva función para probar la IA
   testAI: async (message: string) => {
-    const settings = getStoredData<GlobalSettings>(STORAGE_KEYS.SETTINGS, { groqApiKey: '', ecommerceUrl: '' });
+    const settings = await mockApi.getSettings();
     if (!settings.groqApiKey) throw new Error("Configura tu clave de Groq primero");
     
     const context = settings.scrapedData 

@@ -107,11 +107,7 @@ const Dashboard = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={addInstance}
-<<<<<<< HEAD:apps/client/src/pages/Dashboard.tsx
         instances={instances}
-=======
-        onConnect={connectInstance}
->>>>>>> 1390eea ([dyad] Habilitando la funcionalidad de vinculación de WhatsApp - wrote 4 file(s)):src/pages/Dashboard.tsx
       />
 
     </MainLayout>
