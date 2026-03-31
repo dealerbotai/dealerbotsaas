@@ -384,31 +384,6 @@ export const useWhatsApp = () => {
         }
     };
 
-    const scrapeUrl = async (url: string, storeId?: string) => {
-        setScraping(true);
-        try {
-            const workspaceId = await getWorkspaceId();
-            if (!workspaceId) throw new Error('No se encontró un Workspace activo');
-
-            const API_URL = import.meta.env.VITE_API_URL;
-            const response = await fetch(`${API_URL}/api/scrape`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url, workspaceId, storeId })
-            });
-
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error || 'Error en el servidor');
-
-            toast.success(`Escaneo completado.`);
-            setSettings(prev => ({ ...prev, ecommerceUrl: url }));
-        } catch (error: any) {
-            toast.error('Error al escanear: ' + error.message);
-        } finally {
-            setScraping(false);
-        }
-    };
-
     const addProductManually = async (product: Partial<Product>) => {
         try {
             const workspaceId = await getWorkspaceId();
@@ -434,13 +409,12 @@ export const useWhatsApp = () => {
         stores,
         settings,
         loading,
-        scraping,
+        scraping: false,
         addInstance,
         startInstance,
         toggleBot,
         deleteInstance,
         updateSettings,
-        scrapeUrl,
         addAgent,
         deleteAgent,
         assignAgent,

@@ -2,15 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useWhatsApp, Store, Product } from '@/hooks/use-whatsapp-instances';
 import { supabase } from '@/lib/supabase';
+import { CSVImporter } from '@/components/catalog/CSVImporter';
 import { 
     Store as StoreIcon, 
     Plus, 
     Trash2, 
     Package, 
     ArrowRight,
-    Globe,
     Loader2,
-    RefreshCcw,
     Image as ImageIcon,
     CheckCircle2,
     XCircle,
@@ -18,7 +17,8 @@ import {
     Search,
     LayoutGrid,
     LayoutList,
-    PlusCircle
+    PlusCircle,
+    FileUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,15 +45,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Stores = () => {
-    const { stores, loading, addStore, deleteStore, scrapeUrl, scraping, addProductManually } = useWhatsApp();
+    const { stores, loading, addStore, deleteStore, addProductManually } = useWhatsApp();
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isManualProductOpen, setIsManualProductOpen] = useState(false);
+    const [isImportOpen, setIsImportOpen] = useState(false);
     const [name, setName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedStore, setSelectedStore] = useState<Store | null>(null);
     const [storeProducts, setStoreProducts] = useState<Product[]>([]);
     const [loadingProducts, setLoadingProducts] = useState(false);
-    const [scannerUrl, setScannerUrl] = useState('');
     const [view, setView] = useState<'grid' | 'list'>('grid');
     
     const [searchQuery, setSearchQuery] = useState('');
@@ -117,12 +117,6 @@ const Stores = () => {
         setIsSubmitting(false);
     };
 
-    const handleScrape = async () => {
-        if (!scannerUrl || !selectedStore) return;
-        await scrapeUrl(scannerUrl, selectedStore.id);
-        fetchStoreProducts(selectedStore.id);
-    };
-
     const toggleProductStatus = async (id: string, currentStatus: boolean) => {
         try {
             const { error } = await supabase
@@ -173,11 +167,22 @@ const Stores = () => {
                             </Button>
                             <div>
                                 <h1 className="text-3xl font-black text-white tracking-tight">{selectedStore.name}</h1>
-                                <p className="text-sm text-slate-400 font-medium">Gestión de catálogo y escáner.</p>
+                                <p className="text-sm text-slate-400 font-medium">Gestión de catálogo e importación.</p>
                             </div>
                         </div>
                         
                         <div className="flex items-center gap-3">
+                            <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" className="border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 rounded-xl gap-2 h-11 px-5 font-bold">
+                                        <FileUp className="w-4 h-4" /> Importar CSV
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[800px] border-white/10 shadow-2xl rounded-[40px] p-0 overflow-hidden bg-[#0f172a]">
+                                    <CSVImporter storeId={selectedStore.id} onComplete={() => { fetchStoreProducts(selectedStore.id); setIsImportOpen(false); }} />
+                                </DialogContent>
+                            </Dialog>
+
                             <Dialog open={isManualProductOpen} onOpenChange={setIsManualProductOpen}>
                                 <DialogTrigger asChild>
                                     <Button className="bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl gap-2 h-11 px-5 font-bold">
@@ -206,81 +211,61 @@ const Stores = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <Card className="lg:col-span-1 rounded-[32px] border-white/5 bg-white/5 backdrop-blur-xl overflow-hidden">
-                            <CardHeader className="bg-white/5 pb-6">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-cyan-500 rounded-xl">
-                                        <Globe className="w-5 h-5 text-[#0f172a]" />
-                                    </div>
-                                    <CardTitle className="text-xl font-black text-white">Escáner</CardTitle>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="pt-6 space-y-4">
-                                <Input placeholder="https://tienda.com/categoria" className="h-12 bg-white/5 border-white/10 rounded-xl text-white" value={scannerUrl} onChange={(e) => setScannerUrl(e.target.value)} />
-                                <Button className="w-full h-12 bg-cyan-500 hover:bg-cyan-400 text-[#0f172a] rounded-xl font-bold gap-2 ai-glow-hover" onClick={handleScrape} disabled={scraping || !scannerUrl}>
-                                    {scraping ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
-                                    {scraping ? 'Escaneando...' : 'Iniciar Sincronización'}
-                                </Button>
-                            </CardContent>
-                        </Card>
-
-                        <div className="lg:col-span-2 space-y-6">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div className="relative flex-1 max-w-md">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                    <Input placeholder="Buscar productos..." className="pl-10 h-11 bg-white/5 border-white/10 rounded-2xl text-white" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-                                </div>
-                                <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
-                                    <Button variant="ghost" size="sm" onClick={() => setStatusFilter('all')} className={cn("rounded-xl px-4 h-9 text-xs font-bold", statusFilter === 'all' && "bg-white/10 text-cyan-400")}>Todos</Button>
-                                    <Button variant="ghost" size="sm" onClick={() => setStatusFilter('active')} className={cn("rounded-xl px-4 h-9 text-xs font-bold", statusFilter === 'active' && "bg-white/10 text-cyan-400")}>Activos</Button>
-                                </div>
+                    <div className="space-y-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="relative flex-1 max-w-md">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                <Input placeholder="Buscar productos..." className="pl-10 h-11 bg-white/5 border-white/10 rounded-2xl text-white" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                             </div>
+                            <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
+                                <Button variant="ghost" size="sm" onClick={() => setStatusFilter('all')} className={cn("rounded-xl px-4 h-9 text-xs font-bold", statusFilter === 'all' && "bg-white/10 text-cyan-400")}>Todos</Button>
+                                <Button variant="ghost" size="sm" onClick={() => setStatusFilter('active')} className={cn("rounded-xl px-4 h-9 text-xs font-bold", statusFilter === 'active' && "bg-white/10 text-cyan-400")}>Activos</Button>
+                            </div>
+                        </div>
 
-                            {loadingProducts ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-40 w-full rounded-3xl bg-white/5" />)}
-                                </div>
-                            ) : filteredProducts.length === 0 ? (
-                                <div className="py-20 text-center space-y-4 bg-white/5 rounded-[40px] border-2 border-dashed border-white/10">
-                                    <Package className="w-12 h-12 text-slate-600 mx-auto" />
-                                    <p className="text-slate-400 font-medium">No hay productos.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {filteredProducts.map((product) => (
-                                        <div key={product.id} className="bg-white/5 rounded-[24px] border border-white/10 p-4 flex gap-4 hover:bg-white/10 transition-all group">
-                                            <div className="w-24 h-24 rounded-2xl bg-white/5 overflow-hidden shrink-0 border border-white/10">
-                                                {product.image_base64 ? (
-                                                    <img src={product.image_base64} alt={product.name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-slate-600">
-                                                        <ImageIcon className="w-8 h-8" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0 flex flex-col justify-between">
-                                                <div>
-                                                    <h4 className="font-black text-white truncate uppercase text-sm">{product.name}</h4>
-                                                    <p className="text-xs text-slate-400 line-clamp-2 mt-1">{product.description}</p>
+                        {loadingProducts ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-40 w-full rounded-3xl bg-white/5" />)}
+                            </div>
+                        ) : filteredProducts.length === 0 ? (
+                            <div className="py-20 text-center space-y-4 bg-white/5 rounded-[40px] border-2 border-dashed border-white/10">
+                                <Package className="w-12 h-12 text-slate-600 mx-auto" />
+                                <p className="text-slate-400 font-medium">No hay productos. ¡Importa un CSV para comenzar!</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {filteredProducts.map((product) => (
+                                    <div key={product.id} className="bg-white/5 rounded-[24px] border border-white/10 p-4 flex gap-4 hover:bg-white/10 transition-all group">
+                                        <div className="w-20 h-20 rounded-2xl bg-white/5 overflow-hidden shrink-0 border border-white/10">
+                                            {product.image_base64 ? (
+                                                <img src={product.image_base64} alt={product.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-slate-600">
+                                                    <ImageIcon className="w-6 h-6" />
                                                 </div>
-                                                <div className="flex items-center justify-between mt-2">
-                                                    <span className="text-sm font-black text-cyan-400">${product.price}</span>
-                                                    <div className="flex items-center gap-1">
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10" onClick={() => deleteProduct(product.id)}>
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="icon" className={cn("h-8 w-8 rounded-lg", product.is_active ? "text-green-500 hover:bg-green-500/10" : "text-slate-500 hover:bg-white/10")} onClick={() => toggleProductStatus(product.id, product.is_active)}>
-                                                            {product.is_active ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                                                        </Button>
-                                                    </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                            <div>
+                                                <h4 className="font-black text-white truncate uppercase text-xs">{product.name}</h4>
+                                                <p className="text-[10px] text-slate-400 line-clamp-2 mt-1 leading-relaxed">{product.description}</p>
+                                            </div>
+                                            <div className="flex items-center justify-between mt-2">
+                                                <span className="text-sm font-black text-cyan-400">${product.price}</span>
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10" onClick={() => deleteProduct(product.id)}>
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className={cn("h-8 w-8 rounded-lg", product.is_active ? "text-green-500 hover:bg-green-500/10" : "text-slate-500 hover:bg-white/10")} onClick={() => toggleProductStatus(product.id, product.is_active)}>
+                                                        {product.is_active ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                                                    </Button>
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </MainLayout>

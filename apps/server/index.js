@@ -37,29 +37,10 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Scrape products endpoint
-app.post('/api/scrape', async (req, res) => {
-  try {
-    const { url } = req.body;
-    if (!url) {
-      return res.status(400).json({ error: 'Se requiere una URL' });
-    }
-
-    logger.info('SCRAPER', `Iniciando escaneo de URL: ${url}`);
-    const workspaceId = req.headers['x-workspace-id'] || 'default';
-    const result = await scrapeProducts(url, workspaceId);
-    logger.success('SCRAPER', `Escaneo completado: ${result.products?.length || 0} productos encontrados`);
-    res.json(result);
-  } catch (error) {
-    logger.error('SCRAPER', `Error en endpoint de escaneo: ${error.message}`, error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // Import products endpoint
 app.post('/api/import-products', async (req, res) => {
   try {
-    const { products } = req.body;
+    const { products, storeId } = req.body;
     
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ 
@@ -67,7 +48,7 @@ app.post('/api/import-products', async (req, res) => {
       });
     }
 
-    logger.info('DATABASE', `Importando ${products.length} productos...`);
+    logger.info('DATABASE', `Importando ${products.length} productos ${storeId ? `para la tienda ${storeId}` : ''}...`);
     const workspaceId = req.headers['x-workspace-id'] || 'default';
 
     let importedCount = 0;
@@ -75,22 +56,35 @@ app.post('/api/import-products', async (req, res) => {
 
     for (const product of products) {
       try {
+        // Normalizar el estado a booleano
+        const is_active = product.status?.toLowerCase() === 'active' || product.is_active === true;
+        
+        // Buscar por Handle o por Nombre dentro del mismo workspace y tienda
         const { data: existing } = await supabase
           .from('products')
           .select('id')
-          .eq('name', product.name)
+          .or(`handle.eq.${product.handle},name.eq.${product.name}`)
           .eq('workspace_id', workspaceId)
+          .eq('store_id', storeId || null)
           .maybeSingle();
+
+        const productData = {
+          name: product.name,
+          handle: product.handle || null,
+          category: product.category || null,
+          description: product.description,
+          price: product.price,
+          stock: parseInt(product.stock) || 0,
+          image_url: product.image_url || null,
+          image_base64: product.image_base64 || null,
+          is_active: is_active,
+          updated_at: new Date().toISOString()
+        };
 
         if (existing) {
           const { error } = await supabase
             .from('products')
-            .update({
-              description: product.description,
-              price: product.price,
-              image_base64: product.image_base64 || null,
-              updated_at: new Date().toISOString()
-            })
+            .update(productData)
             .eq('id', existing.id);
           
           if (error) throw error;
@@ -98,12 +92,9 @@ app.post('/api/import-products', async (req, res) => {
           const { error } = await supabase
             .from('products')
             .insert({
-              name: product.name,
-              description: product.description,
-              price: product.price,
-              image_base64: product.image_base64 || null,
+              ...productData,
               workspace_id: workspaceId,
-              is_active: true,
+              store_id: storeId || null,
               created_at: new Date().toISOString()
             });
 

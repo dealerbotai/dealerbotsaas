@@ -7,12 +7,22 @@ import { FileUp, Trash2, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CSVProduct {
+  handle: string;
   name: string;
+  category: string;
   price: number;
+  stock: number;
+  image_url: string;
   description: string;
+  status: string;
 }
 
-export const CSVImporter = () => {
+interface CSVImporterProps {
+  storeId?: string;
+  onComplete?: () => void;
+}
+
+export const CSVImporter = ({ storeId, onComplete }: CSVImporterProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<CSVProduct[]>([]);
   const [importing, setImporting] = useState(false);
@@ -34,19 +44,24 @@ export const CSVImporter = () => {
     reader.onload = (e) => {
       const text = e.target?.result as string;
       const rows = text.split('\n');
-      const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
       
       const products: CSVProduct[] = [];
       for (let i = 1; i < rows.length; i++) {
         if (!rows[i].trim()) continue;
+        
+        // Manejo básico de CSV (separado por comas)
         const columns = rows[i].split(',').map(c => c.trim());
         
-        // Mapeo simple: nombre, precio, descripción
-        // Ajustar según el orden común o buscar por nombre de cabecera
+        // Orden: Handle,Nombre,Categoría,Precio,Stock,Imagen URL,Descripción,Estado
         products.push({
-          name: columns[0] || '',
-          price: parseFloat(columns[1]) || 0,
-          description: columns[2] || ''
+          handle: columns[0] || '',
+          name: columns[1] || '',
+          category: columns[2] || '',
+          price: parseFloat(columns[3]) || 0,
+          stock: parseInt(columns[4]) || 0,
+          image_url: columns[5] || '',
+          description: columns[6] || '',
+          status: columns[7] || 'active'
         });
       }
       setPreview(products);
@@ -66,7 +81,7 @@ export const CSVImporter = () => {
             'Content-Type': 'application/json',
             'x-workspace-id': 'default' // Aquí podrías pasar el workspace_id real
         },
-        body: JSON.stringify({ products: preview })
+        body: JSON.stringify({ products: preview, storeId })
       });
 
       const result = await response.json();
@@ -75,6 +90,7 @@ export const CSVImporter = () => {
       toast.success(`¡Éxito! Se importaron ${result.imported} productos.`);
       setPreview([]);
       setFile(null);
+      if (onComplete) onComplete();
     } catch (error: any) {
       toast.error('Error en la importación: ' + error.message);
     } finally {

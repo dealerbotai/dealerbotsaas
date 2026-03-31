@@ -12,16 +12,9 @@ export interface WhatsAppInstance {
   scope: 'all' | 'groups' | 'specific';
 }
 
-export interface ScrapedData {
-  url: string;
-  products: any[];
-  lastScraped: string;
-}
-
 export interface GlobalSettings {
   groqApiKey: string;
   ecommerceUrl: string;
-  scrapedData?: ScrapedData;
 }
 
 export const mockApi = {
@@ -123,29 +116,11 @@ export const mockApi = {
     return result.data;
   },
 
-  scrapeUrl: async (url: string): Promise<ScrapedData> => {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    const mockData: ScrapedData = {
-      url,
-      products: [
-        { name: 'Granos de Café Premium', price: '$19.99', description: 'Granos orgánicos de tueste oscuro.' },
-        { name: 'Prensa Francesa', price: '$29.99', description: 'Prensa de acero inoxidable para 8 tazas.' },
-        { name: 'Molinillo de Café', price: '$45.00', description: 'Molinillo de muelas con 18 ajustes.' },
-      ],
-      lastScraped: new Date().toISOString(),
-    };
-    
-    await mockApi.updateSettings({ ecommerceUrl: url, scrapedData: mockData });
-    return mockData;
-  },
-
   testAI: async (message: string) => {
     const settings = await mockApi.getSettings();
     if (!settings.groqApiKey) throw new Error("Configura tu clave de Groq primero");
     
-    const context = settings.scrapedData 
-      ? JSON.stringify(settings.scrapedData.products) 
-      : "No hay productos indexados aún.";
+    const context = "No hay productos indexados aún.";
       
     return await generateAIResponse(settings.groqApiKey, message, context);
   }
