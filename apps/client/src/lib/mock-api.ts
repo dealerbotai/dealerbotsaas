@@ -70,6 +70,20 @@ export const mockApi = {
     instances.push(newInstance);
     return newInstance;
   },
+  connectInstance: async (id: string) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    instances = instances.map((inst) =>
+      inst.id === id 
+        ? { 
+            ...inst, 
+            status: 'connected', 
+            phoneNumber: `+52 ${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+            lastActive: new Date().toISOString()
+          } 
+        : inst
+    );
+    return true;
+  },
   toggleBot: async (id: string, enabled: boolean) => {
     await new Promise((resolve) => setTimeout(resolve, 300));
     instances = instances.map((inst) =>
