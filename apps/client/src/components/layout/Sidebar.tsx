@@ -3,6 +3,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
 import { 
     LayoutDashboard, 
     Settings, 
@@ -13,7 +14,8 @@ import {
     Store,
     Zap,
     Sun,
-    Moon
+    Moon,
+    CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -29,6 +31,7 @@ const navItems = [
 ];
 
 const secondaryItems = [
+  { icon: CreditCard, label: 'Plan y Membresía', path: '/billing' },
   { icon: Settings, label: 'Configuración', path: '/settings' },
 ];
 
@@ -36,7 +39,9 @@ export const Sidebar = () => {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { workspace } = useWhatsApp();
 
+  const planName = workspace?.plan || 'free';
   return (
     <div className="flex flex-col h-screen w-[280px] bg-card/50 backdrop-blur-xl border-r border-border/50 p-8 transition-all duration-500">
       <Logo className="mb-12 px-2" />
@@ -99,8 +104,8 @@ export const Sidebar = () => {
           <div className="flex-1 min-w-0">
              <p className="text-[11px] font-bold text-foreground truncate uppercase tracking-tight">{user?.email?.split('@')[0]}</p>
              <div className="flex items-center gap-1.5 opacity-70 mt-0.5">
-                <Zap className="w-2.5 h-2.5 text-amber-500 fill-amber-500" />
-                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Premium</p>
+                <Zap className={cn("w-2.5 h-2.5", planName !== 'free' ? "text-amber-500 fill-amber-500" : "text-slate-400")} />
+                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Plan {planName}</p>
              </div>
           </div>
         </div>

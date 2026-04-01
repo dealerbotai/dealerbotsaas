@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
 import { InstanceCard } from '@/components/whatsapp/InstanceCard';
-import { QRCodeModal } from '@/components/whatsapp/QRCodeModal';
+import { AddChannelModal } from '@/components/whatsapp/AddChannelModal';
 import { 
     Activity, 
     MessageSquare, 
@@ -318,7 +318,7 @@ const Index = () => {
         </div>
       </div>
 
-      <QRCodeModal
+      <AddChannelModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={addInstance}

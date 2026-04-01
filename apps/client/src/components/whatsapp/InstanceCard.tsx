@@ -55,14 +55,20 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete, onStart }: Insta
           <div className="flex items-center gap-5">
             <div className={cn(
               "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500",
-              instance.status === 'connected' ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground/40"
+              instance.platform === 'messenger' 
+                ? "bg-[#0084FF]/10 text-[#0084FF]" 
+                : (instance.status === 'connected' ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground/40")
             )}>
-              {instance.status === 'connected' ? <Bot className="w-7 h-7" /> : <MessageSquare className="w-7 h-7" />}
+              {instance.platform === 'messenger' ? (
+                <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.974 12-11.111C24 4.974 18.627 0 12 0Zm1.191 14.963-3.056-3.26-5.963 3.26 6.559-6.963 3.13 3.26 5.888-3.26-6.558 6.963Z"/></svg>
+              ) : (
+                instance.status === 'connected' ? <Bot className="w-7 h-7" /> : <MessageSquare className="w-7 h-7" />
+              )}
             </div>
             <div className="min-w-0">
               <CardTitle className="text-lg font-black text-foreground truncate tracking-tight uppercase leading-tight">{instance.name}</CardTitle>
               <p className="text-[10px] text-muted-foreground/60 font-bold font-mono uppercase tracking-widest mt-1">
-                  {instance.phone_number || 'SIN VINCULAR'}
+                  {instance.platform === 'messenger' ? (instance.external_id ? 'PÁGINA VINCULADA' : 'SIN VINCULAR') : (instance.phone_number || 'SIN VINCULAR')}
               </p>
             </div>
           </div>
@@ -131,7 +137,7 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete, onStart }: Insta
               className="w-full rounded-2xl font-black h-12 gap-3 bg-primary text-primary-foreground hover:scale-[1.02] transition-all uppercase text-[10px] tracking-widest"
               onClick={() => onStart(instance.id, instance.name)}
             >
-              <Power className="w-4 h-4" /> Iniciar Motor
+              <Power className="w-4 h-4" /> {instance.platform === 'messenger' ? 'Reconectar Webhook' : 'Iniciar Motor'}
             </Button>
           ) : instance.status === 'qr_ready' ? (
             <Button 

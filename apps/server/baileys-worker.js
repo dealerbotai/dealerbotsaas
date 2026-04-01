@@ -100,12 +100,12 @@ async function startWorker() {
                         let response = "";
 
                         logger.worker(id, `Comando de control detectado: .${command}`);
-                        const groqService = (u, s) => groqChat(supabase, id, u, s);
+                        const aiService = (u, s) => getAIResponseFromRouter(supabase, id, u, s);
 
                         if (command === 'inicio') {
-                            response = await handleInicio(supabase, context, groqService);
+                            response = await handleInicio(supabase, context, aiService);
                         } else if (command === 'cierre') {
-                            response = await handleCierre(supabase, context, groqService);
+                            response = await handleCierre(supabase, context, aiService);
                         } else if (command === 'cancelar') {
                             response = await handleCancelar(supabase, context, args);
                         } else if (command === 'venta') {
@@ -230,7 +230,7 @@ async function startWorker() {
  */
 async function getAIResponse(prompt, instanceId, remoteJid) {
     const systemPrompt = "Eres un asistente de ventas atento."; // Simplificado
-    return await groqChat(supabase, instanceId, prompt, systemPrompt);
+    return await getAIResponseFromRouter(supabase, instanceId, prompt, systemPrompt);
 }
 
 startWorker().catch(e => {

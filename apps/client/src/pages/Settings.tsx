@@ -4,8 +4,9 @@ import React from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
 import { GroqConfig } from '@/components/settings/GroqConfig';
+import { GeminiConfig } from '@/components/settings/GeminiConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings as SettingsIcon, Key, ShieldCheck } from 'lucide-react';
+import { Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
 
 const Settings = () => {
   const { settings, updateSettings } = useWhatsApp();
@@ -35,23 +36,10 @@ const Settings = () => {
                 onSave={(key) => updateSettings({ groqApiKey: key })} 
               />
               
-              <div className="bg-primary/5 rounded-[32px] p-8 border border-primary/10 flex flex-col justify-center">
-                <div className="bg-primary/10 w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
-                  <Key className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold mb-3">¿Por qué Groq?</h3>
-                <p className="text-muted-foreground leading-relaxed font-medium">
-                  Groq proporciona inferencia ultra rápida para modelos de lenguaje. Al usar Groq, tu bot de WhatsApp puede responder a los clientes en milisegundos, ofreciendo una experiencia de compra fluida y humana.
-                </p>
-                <div className="mt-8 flex items-center gap-4">
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-accent" />
-                    ))}
-                  </div>
-                  <span className="text-sm font-bold text-primary">Confiado por más de 500 tiendas</span>
-                </div>
-              </div>
+              <GeminiConfig 
+                apiKey={settings.geminiApiKey} 
+                onSave={(key) => updateSettings({ geminiApiKey: key })} 
+              />
             </div>
           </TabsContent>
 

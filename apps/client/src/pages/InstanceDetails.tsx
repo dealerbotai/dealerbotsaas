@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { QRCodeModal } from '@/components/whatsapp/QRCodeModal';
+import { AddChannelModal } from '@/components/whatsapp/AddChannelModal';
 import { ActivityLog } from '@/components/whatsapp/ActivityLog';
 import { ControlChannelsList } from '@/components/whatsapp/ControlChannelsList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -254,7 +254,7 @@ const InstanceDetails = () => {
                                 </div>
 
                                 <div className="space-y-3 pt-4 border-t border-border">
-                                    {instance.status === 'connected' && (
+                                    {instance.status === 'connected' && instance.platform !== 'messenger' && (
                                         <Link to={`/instances/${instance.id}/web`}>
                                             <Button className="w-full h-11 rounded-xl font-black bg-secondary hover:bg-accent text-foreground border border-border gap-3 uppercase text-[10px] tracking-widest transition-all">
                                                 <MessageSquare className="w-4 h-4 text-primary" /> WhatsApp Mirror
@@ -272,7 +272,7 @@ const InstanceDetails = () => {
                                         onClick={() => { startInstance(instance.id, instance.name); if (['disconnected', 'expired', 'qr_ready'].includes(instance.status)) setIsModalOpen(true); }}
                                     >
                                         {instance.status === 'connected' ? <History className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
-                                        {instance.status === 'connected' ? 'Reiniciar Motor' : 'Vincular WhatsApp'}
+                                        {instance.status === 'connected' ? 'Reiniciar Motor' : (instance.platform === 'messenger' ? 'Vincular Messenger' : 'Vincular WhatsApp')}
                                     </Button>
                                 </div>
                             </CardContent>
@@ -326,7 +326,7 @@ const InstanceDetails = () => {
         </Tabs>
       </div>
       
-      <QRCodeModal
+      <AddChannelModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={addInstance}

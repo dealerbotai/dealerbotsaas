@@ -138,84 +138,161 @@ app.get('/health', (req, res) => {
 });
 
 // Function to start a worker
-function startInstanceWorker(instanceId, name) {
+async function startInstanceWorker(instanceId, name) {
     if (workers.has(instanceId)) {
         logger.warn('WORKER', `La instancia ${name} (${instanceId}) ya tiene un worker activo.`);
         return;
     }
 
-    logger.info('WORKER', `Iniciando nuevo nodo para: ${name}`);
+    try {
+        const { data: instance } = await supabase
+            .from('instances')
+            .select('*')
+            .eq('id', instanceId)
+            .single();
 
-    const worker = new Worker(path.join(__dirname, 'baileys-worker.js'), {
-        workerData: {
-            id: instanceId,
-            name: name,
-            SUPABASE_URL: process.env.SUPABASE_URL,
-            SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY
-        }
-    });
-
-    worker.on('message', (msg) => {
-        // Enviar evento al socket room específico de la instancia
-        io.to(`instance:${instanceId}`).emit(msg.type, { ...msg, instanceId });
-
-        // Mapear eventos de mensaje para la actividad en tiempo real
-        if (msg.type === 'message' || msg.type === 'bot-reply') {
-            // Notificar a la interfaz de WhatsApp Web
-            io.to(`instance:${instanceId}`).emit('message-update', { 
-                instanceId,
-                message: {
-                    from: msg.from,
-                    body: msg.body || msg.reply,
-                    pushname: msg.pushname || 'Bot',
-                    chat_id: msg.chat_id,
-                    from_me: msg.type === 'bot-reply'
-                }
-            });
-            // También al ActivityLog
-            io.to(`instance:${instanceId}`).emit('instance-log', {
-                level: msg.type === 'message' ? 'bot-in' : 'bot-out',
-                message: msg.body || msg.reply,
-                context: msg.pushname || 'WhatsApp',
-                timestamp: new Date().toISOString()
-            });
+        if (!instance) {
+            logger.error('WORKER', `Instancia ${instanceId} no encontrada en DB.`);
+            return;
         }
 
-        // Actualizar estado en Supabase
-        if (msg.type === 'ready') {
-            logger.success('WORKER', `Instancia conectada correctamente: ${name} (${msg.phoneNumber})`);
-            supabase.from('instances').update({ 
-                status: 'connected', 
-                phone_number: msg.phoneNumber,
-                last_connected_at: new Date().toISOString()
-            }).eq('id', instanceId).then();
-        } else if (msg.type === 'qr') {
-            logger.info('WORKER', `Nuevo QR generado para: ${name}`);
-            // Emitir al room específico
-            io.to(`instance:${instanceId}`).emit('qr', { instanceId, qr: msg.qr });
-            // Emitir globalmente como backup para el dashboard
-            io.emit('qr', { instanceId, qr: msg.qr });
-            
-            supabase.from('instances').update({ status: 'qr_ready' }).eq('id', instanceId).then();
-        } else if (msg.type === 'expired') {
-            logger.warn('WORKER', `Sesión expirada para: ${name}`);
-            supabase.from('instances').update({ status: 'expired' }).eq('id', instanceId).then();
-        }
-    });
+        const platform = instance.platform || 'whatsapp';
+        logger.info('WORKER', `Iniciando nuevo nodo para: ${name} en plataforma: ${platform}`);
 
-    worker.on('error', (err) => {
-        logger.error('WORKER', `Fallo crítico en worker ${name}: ${err.message}`, err);
-        io.to(`instance:${instanceId}`).emit('instance-status-update', { instanceId, status: 'disconnected', error: err.message });
-    });
+        const workerFile = platform === 'messenger' ? 'messenger-worker.js' : 'baileys-worker.js';
 
-    worker.on('exit', (code) => {
-        logger.info('WORKER', `Worker de ${name} finalizado (Código: ${code})`);
-        workers.delete(instanceId);
-        supabase.from('instances').update({ status: 'disconnected' }).eq('id', instanceId).then();
-    });
+        const worker = new Worker(path.join(__dirname, workerFile), {
+            workerData: {
+                id: instanceId,
+                name: name,
+                SUPABASE_URL: process.env.SUPABASE_URL,
+                SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+                external_id: instance.external_id,
+                access_token: instance.access_token
+            }
+        });
 
-    workers.set(instanceId, worker);
+        worker.on('message', (msg) => {
+            // Enviar evento al socket room específico de la instancia
+            io.to(`instance:${instanceId}`).emit(msg.type, { ...msg, instanceId });
+
+            // Mapear eventos de mensaje para la actividad en tiempo real
+            if (msg.type === 'message' || msg.type === 'bot-reply') {
+                // Notificar a la interfaz
+                io.to(`instance:${instanceId}`).emit('message-update', { 
+                    instanceId,
+                    message: {
+                        from: msg.from,
+                        body: msg.body || msg.reply,
+                        pushname: msg.pushname || 'Bot',
+                        chat_id: msg.chat_id,
+                        from_me: msg.type === 'bot-reply'
+                    }
+                });
+                io.to(`instance:${instanceId}`).emit('instance-log', {
+                    level: msg.type === 'message' ? 'bot-in' : 'bot-out',
+                    message: msg.body || msg.reply,
+                    context: msg.pushname || 'Platform',
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            // Actualizar estado en Supabase
+            if (msg.type === 'ready') {
+                logger.success('WORKER', `Instancia conectada correctamente: ${name} (${msg.phoneNumber})`);
+                supabase.from('instances').update({ 
+                    status: 'connected', 
+                    phone_number: msg.phoneNumber,
+                    last_connected_at: new Date().toISOString()
+                }).eq('id', instanceId).then();
+            } else if (msg.type === 'qr') {
+                logger.info('WORKER', `Nuevo QR generado para: ${name}`);
+                io.to(`instance:${instanceId}`).emit('qr', { instanceId, qr: msg.qr });
+                io.emit('qr', { instanceId, qr: msg.qr });
+                supabase.from('instances').update({ status: 'qr_ready' }).eq('id', instanceId).then();
+            } else if (msg.type === 'expired') {
+                logger.warn('WORKER', `Sesión expirada para: ${name}`);
+                supabase.from('instances').update({ status: 'expired' }).eq('id', instanceId).then();
+            }
+        });
+
+        worker.on('error', (err) => {
+            logger.error('WORKER', `Fallo crítico en worker ${name}: ${err.message}`, err);
+            io.to(`instance:${instanceId}`).emit('instance-status-update', { instanceId, status: 'disconnected', error: err.message });
+        });
+
+        worker.on('exit', (code) => {
+            logger.info('WORKER', `Worker de ${name} finalizado (Código: ${code})`);
+            workers.delete(instanceId);
+            supabase.from('instances').update({ status: 'disconnected' }).eq('id', instanceId).then();
+        });
+
+        workers.set(instanceId, worker);
+    } catch (error) {
+        logger.error('WORKER', `Error al iniciar worker: ${error.message}`);
+    }
 }
+
+// FB Messenger Webhook
+app.get('/api/webhook/messenger', (req, res) => {
+    const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || 'salesbot_secret_token';
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (mode && token) {
+        if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+            logger.success('WEBHOOK', 'Webhook de Facebook verificado correctamente');
+            res.status(200).send(challenge);
+        } else {
+            res.sendStatus(403);
+        }
+    } else {
+        res.sendStatus(400);
+    }
+});
+
+app.post('/api/webhook/messenger', async (req, res) => {
+    const body = req.body;
+    
+    if (body.object === 'page') {
+        body.entry.forEach(async (entry) => {
+            const pageId = entry.id; // El ID de la página
+            const webhookEvent = entry.messaging[0];
+            
+            const senderId = webhookEvent.sender.id;
+            
+            if (webhookEvent.message && webhookEvent.message.text) {
+                // Buscar instancia por Page ID
+                const { data: instances } = await supabase
+                    .from('instances')
+                    .select('id')
+                    .eq('platform', 'messenger')
+                    .eq('external_id', pageId)
+                    .eq('status', 'connected');
+
+                if (instances && instances.length > 0) {
+                    const instanceId = instances[0].id;
+                    const worker = workers.get(instanceId);
+                    
+                    if (worker) {
+                        worker.postMessage({
+                            type: 'messenger-event',
+                            payload: {
+                                senderId: senderId,
+                                messageText: webhookEvent.message.text,
+                                timestamp: webhookEvent.timestamp
+                            }
+                        });
+                    }
+                }
+            }
+        });
+        res.status(200).send('EVENT_RECEIVED');
+    } else {
+        res.sendStatus(404);
+    }
+});
 
 // Socket.io logic
 io.on('connection', (socket) => {

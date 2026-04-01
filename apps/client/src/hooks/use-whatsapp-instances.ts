@@ -15,6 +15,9 @@ export interface WhatsAppInstance {
     name: string;
     status: 'initializing' | 'qr_ready' | 'connected' | 'disconnected' | 'expired' | 'loading';
     bot_enabled: boolean;
+    platform?: 'whatsapp' | 'messenger';
+    external_id?: string;
+    access_token?: string;
     phone_number?: string;
     last_connected_at?: string;
     workspace_id: string;
@@ -28,6 +31,7 @@ export interface WhatsAppInstance {
 
 export interface GlobalSettings {
     groqApiKey: string;
+    geminiApiKey?: string;
     ecommerceUrl: string;
     scrapedData?: any;
     globalPersonality?: string;
@@ -59,31 +63,100 @@ export interface Product {
     updated_at?: string;
 }
 
+export interface Workspace {
+    id: string;
+    name: string;
+    plan: 'free' | 'pro' | 'enterprise';
+    subscription_status: string;
+}
+
+export const PLAN_LIMITS = {
+    free: { instances: 1, stores: 1, agents: 1 },
+    pro: { instances: 5, stores: 10, agents: 20 },
+    enterprise: { instances: 999, stores: 999, agents: 999 }
+};
+
 export const useWhatsApp = () => {
+    const [workspace, setWorkspace] = useState<Workspace | null>(null);
     const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
     const [agents, setAgents] = useState<AIAgent[]>([]);
     const [stores, setStores] = useState<Store[]>([]);
-    const [settings, setSettings] = useState<GlobalSettings>({ groqApiKey: '', ecommerceUrl: '' });
+    const [usage, setUsage] = useState({ tokens: 0, limit: 100000 });
+    const [settings, setSettings] = useState<GlobalSettings>({ groqApiKey: '', geminiApiKey: '', ecommerceUrl: '' });
     const [loading, setLoading] = useState(true);
-    const [scraping, setScraping] = useState(false);
 
-    const getWorkspaceId = useCallback(async () => {
+    const fetchUsage = useCallback(async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return null;
+            if (!user) return;
 
-            const { data: member, error } = await supabase
+            const { data: member } = await supabase
                 .from('workspace_members')
                 .select('workspace_id')
                 .eq('user_id', user.id)
                 .single();
-            
-            if (error || !member) return null;
-            return member.workspace_id;
+
+            if (!member) return;
+
+            const { data, error } = await supabase
+                .from('token_usage')
+                .select('total_tokens')
+                .eq('workspace_id', member.workspace_id);
+
+            if (error) throw error;
+            const total = data.reduce((acc, curr) => acc + (curr.total_tokens || 0), 0);
+            setUsage(prev => ({ ...prev, tokens: total }));
+        } catch (error: any) {
+            console.error('Error al obtener uso:', error.message);
+        }
+    }, []);
+
+    const fetchWorkspace = useCallback(async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return null;
+
+            const { data: member, error: memberError } = await supabase
+                .from('workspace_members')
+                .select('workspace_id')
+                .eq('user_id', user.id)
+                .single();
+
+            if (memberError || !member) return null;
+
+            const { data: ws, error: wsError } = await supabase
+                .from('workspaces')
+                .select('*')
+                .eq('id', member.workspace_id)
+                .single();
+
+            if (wsError || !ws) return null;
+
+            const wsObj = {
+                id: ws.id,
+                name: ws.name,
+                plan: (ws.plan || 'free') as Workspace['plan'],
+                subscription_status: ws.subscription_status
+            };
+            setWorkspace(wsObj);
+            return wsObj;
         } catch (e: any) {
             return null;
         }
     }, []);
+
+    const checkLimit = (type: 'instances' | 'stores' | 'agents') => {
+        if (!workspace) return false;
+        const currentCount = type === 'instances' ? instances.length : 
+                           type === 'stores' ? stores.length : agents.length;
+        const limit = PLAN_LIMITS[workspace.plan][type];
+
+        if (currentCount >= limit) {
+            toast.error(`Límite alcanzado (${limit} ${type}). Mejora tu plan para añadir más.`);
+            return false;
+        }
+        return true;
+    };
 
     const fetchInstances = useCallback(async () => {
         try {
@@ -101,13 +174,13 @@ export const useWhatsApp = () => {
 
     const fetchAgents = useCallback(async () => {
         try {
-            const workspaceId = await getWorkspaceId();
-            if (!workspaceId) return;
+            const ws = await fetchWorkspace();
+            if (!ws) return;
 
             const { data, error } = await supabase
                 .from('agents')
                 .select('*')
-                .eq('workspace_id', workspaceId)
+                .eq('workspace_id', ws.id)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -115,17 +188,17 @@ export const useWhatsApp = () => {
         } catch (error: any) {
             console.error('Error al obtener agentes:', error.message);
         }
-    }, [getWorkspaceId]);
+    }, [fetchWorkspace]);
 
     const fetchStores = useCallback(async () => {
         try {
-            const workspaceId = await getWorkspaceId();
-            if (!workspaceId) return;
+            const ws = await fetchWorkspace();
+            if (!ws) return;
 
             const { data, error } = await supabase
                 .from('stores')
                 .select('*')
-                .eq('workspace_id', workspaceId)
+                .eq('workspace_id', ws.id)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -133,23 +206,24 @@ export const useWhatsApp = () => {
         } catch (error: any) {
             console.error('Error al obtener tiendas:', error.message);
         }
-    }, [getWorkspaceId]);
+    }, [fetchWorkspace]);
 
     const fetchSettings = useCallback(async () => {
         try {
-            const workspaceId = await getWorkspaceId();
-            if (!workspaceId) return;
+            const ws = await fetchWorkspace();
+            if (!ws) return;
 
             const { data, error } = await supabase
                 .from('settings')
                 .select('*')
-                .eq('workspace_id', workspaceId)
+                .eq('workspace_id', ws.id)
                 .maybeSingle();
 
             if (error) throw error;
             if (data) {
                 setSettings({
                     groqApiKey: data.groq_api_key_encrypted || '',
+                    geminiApiKey: data.gemini_api_key_encrypted || '',
                     ecommerceUrl: data.ecommerce_url || '',
                     scrapedData: data.scraped_data || {},
                     globalPersonality: data.global_personality || ''
@@ -158,7 +232,7 @@ export const useWhatsApp = () => {
         } catch (error: any) {
             console.error('Error al obtener settings:', error.message);
         }
-    }, [getWorkspaceId]);
+    }, [fetchWorkspace]);
 
     useEffect(() => {
         const handleStatusUpdate = (data: { instanceId: string; status: WhatsAppInstance['status']; error?: string }) => {
@@ -169,14 +243,12 @@ export const useWhatsApp = () => {
         };
 
         const handleQR = (data: { instanceId: string; qr: string }) => {
-            console.log('📡 Evento QR recibido:', data.instanceId);
             setInstances(prev => prev.map(inst => 
                 inst.id === data.instanceId ? { ...inst, status: 'qr_ready', qr: data.qr } : inst
             ));
         };
 
         const handleReady = (data: { instanceId: string; phoneNumber?: string }) => {
-            console.log('✅ Instancia lista (connected):', data.instanceId);
             setInstances(prev => prev.map(inst => 
                 inst.id === data.instanceId ? { ...inst, status: 'connected', phone_number: data.phoneNumber } : inst
             ));
@@ -197,20 +269,20 @@ export const useWhatsApp = () => {
     useEffect(() => {
         const init = async () => {
             setLoading(true);
-            await Promise.all([fetchInstances(), fetchSettings(), fetchAgents(), fetchStores()]);
+            await Promise.all([fetchWorkspace(), fetchInstances(), fetchSettings(), fetchAgents(), fetchStores(), fetchUsage()]);
             setLoading(false);
         };
         init();
-    }, [fetchInstances, fetchSettings, fetchAgents, fetchStores]);
+    }, []);
 
     const addStore = async (name: string) => {
         try {
-            const workspaceId = await getWorkspaceId();
-            if (!workspaceId) throw new Error('No se encontró un Workspace activo');
+            if (!checkLimit('stores')) return;
+            if (!workspace) throw new Error('No se encontró un Workspace activo');
 
             const { data, error } = await supabase
                 .from('stores')
-                .insert([{ name, workspace_id: workspaceId }])
+                .insert([{ name, workspace_id: workspace.id }])
                 .select()
                 .single();
 
@@ -242,12 +314,12 @@ export const useWhatsApp = () => {
                 .eq('id', instanceId);
 
             if (error) throw error;
-            
+
             const storeObj = stores.find(s => s.id === storeId);
             setInstances(prev => prev.map(inst => 
                 inst.id === instanceId ? { ...inst, store_id: storeId, store: storeObj } : inst
             ));
-            
+
             toast.success('Tienda asignada con éxito');
         } catch (error: any) {
             toast.error('Error al asignar tienda: ' + error.message);
@@ -256,12 +328,12 @@ export const useWhatsApp = () => {
 
     const addAgent = async (name: string, promptText: string) => {
         try {
-            const workspaceId = await getWorkspaceId();
-            if (!workspaceId) throw new Error('No se encontró un Workspace activo');
+            if (!checkLimit('agents')) return;
+            if (!workspace) throw new Error('No se encontró un Workspace activo');
 
             const { data, error } = await supabase
                 .from('agents')
-                .insert([{ name, prompt_text: promptText, workspace_id: workspaceId }])
+                .insert([{ name, prompt_text: promptText, workspace_id: workspace.id }])
                 .select()
                 .single();
 
@@ -293,37 +365,46 @@ export const useWhatsApp = () => {
                 .eq('id', instanceId);
 
             if (error) throw error;
-            
+
             const agentObj = agents.find(a => a.id === agentId);
             setInstances(prev => prev.map(inst => 
                 inst.id === instanceId ? { ...inst, agent_id: agentId, agent: agentObj } : inst
             ));
-            
+
             toast.success('Agente asignado con éxito');
         } catch (error: any) {
             toast.error('Error al asignar agente: ' + error.message);
         }
     };
 
-    const addInstance = async (name: string) => {
+    const addInstance = async (name: string, platform: 'whatsapp' | 'messenger' = 'whatsapp', external_id?: string, access_token?: string) => {
         try {
-            const workspaceId = await getWorkspaceId();
-            if (!workspaceId) throw new Error('No se encontró un Workspace activo');
+            if (!checkLimit('instances')) return;
+            if (!workspace) throw new Error('No se encontró un Workspace activo');
 
             const { data, error } = await supabase
                 .from('instances')
                 .insert([{
                     name,
-                    workspace_id: workspaceId,
-                    status: 'disconnected',
-                    bot_enabled: true
+                    workspace_id: workspace.id,
+                    status: platform === 'messenger' ? 'connected' : 'disconnected',
+                    bot_enabled: true,
+                    platform,
+                    external_id,
+                    access_token
                 }])
                 .select()
                 .single();
 
             if (error) throw error;
             setInstances(prev => [data, ...prev]);
-            socket.emit('start-instance', { instanceId: data.id, name });
+            
+            if (platform === 'whatsapp') {
+                socket.emit('start-instance', { instanceId: data.id, name });
+            } else if (platform === 'messenger') {
+                socket.emit('start-instance', { instanceId: data.id, name });
+                toast.success('Cuenta de Messenger vinculada correctamente.');
+            }
             return data;
         } catch (error: any) {
             toast.error('Error al crear instancia: ' + error.message);
@@ -356,10 +437,9 @@ export const useWhatsApp = () => {
         try {
             const { error } = await supabase.from('instances').delete().eq('id', id);
             if (error) throw error;
-            
-            // Notificar al servidor para detener el worker y limpiar archivos
+
             socket.emit('delete-instance', { instanceId: id });
-            
+
             setInstances(prev => prev.filter(inst => inst.id !== id));
             toast.success('Instancia eliminada');
         } catch (error: any) {
@@ -369,17 +449,17 @@ export const useWhatsApp = () => {
 
     const updateSettings = async (newSettings: Partial<GlobalSettings>) => {
         try {
-            const workspaceId = await getWorkspaceId();
-            if (!workspaceId) throw new Error('No se encontró un Workspace activo');
+            if (!workspace) throw new Error('No se encontró un Workspace activo');
 
             const mapping: any = {};
             if (newSettings.groqApiKey !== undefined) mapping.groq_api_key_encrypted = newSettings.groqApiKey;
+            if (newSettings.geminiApiKey !== undefined) mapping.gemini_api_key_encrypted = newSettings.geminiApiKey;
             if (newSettings.ecommerceUrl !== undefined) mapping.ecommerce_url = newSettings.ecommerceUrl;
             if (newSettings.globalPersonality !== undefined) mapping.global_personality = newSettings.globalPersonality;
 
             const { error } = await supabase
                 .from('settings')
-                .upsert({ ...mapping, workspace_id: workspaceId }, { onConflict: 'workspace_id' });
+                .upsert({ ...mapping, workspace_id: workspace.id }, { onConflict: 'workspace_id' });
 
             if (error) throw error;
             setSettings(prev => ({ ...prev, ...newSettings }));
@@ -391,12 +471,11 @@ export const useWhatsApp = () => {
 
     const addProductManually = async (product: Partial<Product>) => {
         try {
-            const workspaceId = await getWorkspaceId();
-            if (!workspaceId) throw new Error('No se encontró un Workspace activo');
+            if (!workspace) throw new Error('No se encontró un Workspace activo');
 
             const { data, error } = await supabase
                 .from('products')
-                .insert([{ ...product, workspace_id: workspaceId, is_active: true }])
+                .insert([{ ...product, workspace_id: workspace.id, is_active: true }])
                 .select()
                 .single();
 
@@ -409,9 +488,11 @@ export const useWhatsApp = () => {
     };
 
     return {
+        workspace,
         instances,
         agents,
         stores,
+        usage,
         settings,
         loading,
         scraping: false,

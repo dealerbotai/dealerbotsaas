@@ -4,18 +4,18 @@ import React, { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
 import { InstanceCard } from '@/components/whatsapp/InstanceCard';
-import { QRCodeModal } from '@/components/whatsapp/QRCodeModal';
+import { AddChannelModal } from '@/components/whatsapp/AddChannelModal';
 import { Button } from '@/components/ui/button';
 import { Plus, Users, MessageSquare, Zap, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Dashboard = () => {
-  const { instances, loading, toggleBot, deleteInstance, addInstance, connectInstance } = useWhatsApp();
+  const { instances, loading, toggleBot, deleteInstance, addInstance } = useWhatsApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const stats = [
     { label: 'Total de Instancias', value: instances.length, icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: 'Bots Activos', value: instances.filter(i => i.botEnabled).length, icon: Zap, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+    { label: 'Bots Activos', value: instances.filter(i => i.bot_enabled).length, icon: Zap, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
     { label: 'Conectados', value: instances.filter(i => i.status === 'connected').length, icon: Activity, color: 'text-green-500', bg: 'bg-green-500/10' },
     { label: 'Mensajes Hoy', value: '1,284', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-500/10' },
   ];
@@ -26,7 +26,7 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Panel de Control</h1>
-            <p className="text-muted-foreground font-medium">Gestiona tu red de automatización de WhatsApp.</p>
+            <p className="text-muted-foreground font-medium">Gestiona tu red de automatización multicanal.</p>
           </div>
           <Button 
             onClick={() => setIsModalOpen(true)} 
@@ -81,6 +81,7 @@ const Dashboard = () => {
                   instance={instance}
                   onToggleBot={toggleBot}
                   onDelete={deleteInstance}
+                  onStart={() => {}} // Placeholder
                 />
               ))}
             </div>
@@ -92,18 +93,18 @@ const Dashboard = () => {
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold">No se encontraron instancias</h3>
                 <p className="text-muted-foreground max-w-md mx-auto font-medium">
-                  Comienza vinculando tu primera cuenta de WhatsApp. Puedes gestionar múltiples cuentas desde un solo lugar.
+                  Comienza vinculando tu primera cuenta de WhatsApp o Messenger.
                 </p>
               </div>
               <Button onClick={() => setIsModalOpen(true)} variant="outline" className="rounded-2xl h-12 px-8 font-bold border-primary/20 text-primary hover:bg-primary/5">
-                Vincular WhatsApp Ahora
+                Vincular Canal Ahora
               </Button>
             </div>
           )}
         </div>
       </div>
 
-      <QRCodeModal
+      <AddChannelModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={addInstance}
