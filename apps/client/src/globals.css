@@ -4,41 +4,41 @@
 
 @layer base {
   :root {
-    /* ─── Kusanali Design System (Light) ──────────────────────── */
-    --background: 36 33% 93%;
-    --foreground: 163 33% 27%;
+    /* ─── Kusanali Design System (Light · Warm Organic) ──────────── */
+    --background: 34 33% 91%;    /* #F5EFE6 */
+    --foreground: 165 33% 27%;   /* #2F5D50 */
 
-    --card: 34 64% 98%;
-    --card-foreground: 163 33% 27%;
+    --card: 37 64% 98%;          /* #FDFAF6 */
+    --card-foreground: 165 33% 27%;
 
-    --popover: 34 64% 98%;
-    --popover-foreground: 163 33% 27%;
+    --popover: 37 64% 98%;
+    --popover-foreground: 165 33% 27%;
 
-    --primary: 148 41% 55%;
+    --primary: 148 41% 55%;      /* #5DBB89 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 147 22% 91%;
-    --secondary-foreground: 163 33% 27%;
+    --secondary: 150 22% 91%;    /* #E4EDE8 */
+    --secondary-foreground: 165 33% 27%;
 
-    --muted: 37 34% 89%;
-    --muted-foreground: 150 14% 54%;
+    --muted: 38 34% 89%;         /* #EDE5D8 */
+    --muted-foreground: 153 14% 54%; /* #7A9A8A */
 
-    --accent: 158 35% 75%;
-    --accent-foreground: 163 33% 27%;
+    --accent: 159 35% 75%;       /* #A7D7C5 */
+    --accent-foreground: 165 33% 27%;
 
-    --destructive: 9 45% 61%;
+    --destructive: 9 45% 61%;    /* #C77B6E */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 145 16% 44% / 0.13;
-    --input: 37 34% 89%;
+    --border: 150 16% 44% / 0.13;
+    --input: 38 34% 89%;
     --ring: 148 41% 55%;
 
     --radius: 1.125rem;
 
     /* Extra semantic colors */
     --success: 148 41% 55%;
-    --warning: 35 59% 59%;
-    --info: 201 39% 58%;
+    --warning: 35 59% 59%;       /* #D4A057 */
+    --info: 201 39% 58%;         /* #6B9EBB */
 
     /* Typography & Font */
     --font-inter: "Inter", sans-serif;
@@ -63,53 +63,27 @@
     --color-ring: var(--ring);
   }
 
+  /* No dark mode - Force light style */
   .dark {
-    /* Dark Theme - Midnight / Deep Space (Sophisticated) */
-    --background: 222 47% 11%;    /* Very deep blue (#0f172a) */
-    --foreground: 210 40% 98%;
-
-    --card: 222 47% 13%;          /* Slightly lighter surface (#1e293b approx) */
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 13%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 199 89% 48%;       /* Bright, energetic cyan-blue */
-    --primary-foreground: 222 47% 11%;
-
-    --secondary: 217 33% 17%;      /* Muted background for secondary elements */
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217 33% 25%;        /* Subtle dark borders */
-    --input: 217 33% 25%;
-    --ring: 199 89% 48%;
-
-    /* Semantic Mappings */
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --color-card: var(--card);
-    --color-card-foreground: var(--card-foreground);
-    --color-primary: var(--primary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-secondary: var(--secondary);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-muted: var(--muted);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-destructive: var(--destructive);
-    --color-border: var(--border);
-    --color-input: var(--input);
-    --color-ring: var(--ring);
+    --background: 34 33% 91%;
+    --foreground: 165 33% 27%;
+    --card: 37 64% 98%;
+    --card-foreground: 165 33% 27%;
+    --popover: 37 64% 98%;
+    --popover-foreground: 165 33% 27%;
+    --primary: 148 41% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 150 22% 91%;
+    --secondary-foreground: 165 33% 27%;
+    --muted: 38 34% 89%;
+    --muted-foreground: 153 14% 54%;
+    --accent: 159 35% 75%;
+    --accent-foreground: 165 33% 27%;
+    --destructive: 9 45% 61%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 150 16% 44% / 0.13;
+    --input: 38 34% 89%;
+    --ring: 148 41% 55%;
   }
 }
 
@@ -117,129 +91,27 @@
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-background text-foreground font-sans antialiased transition-colors duration-500;
-    background-attachment: fixed;
-  }
-
-  /* Smooth Typography */
-  h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tight;
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 @layer components {
-  /* Minimalist surfaces */
-  .surface-elevated {
-    @apply bg-card border border-border/50 shadow-sm rounded-[24px] backdrop-blur-md;
+  .glass-card {
+    @apply bg-card/50 backdrop-blur-md border border-border/50 shadow-sm;
   }
   
-  .surface-flat {
-    @apply bg-secondary/30 border border-border/40 rounded-[20px];
+  .ai-glow {
+    @apply relative overflow-hidden;
+  }
+  
+  .ai-glow::after {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-accent/5 pointer-events-none;
   }
 
-  /* Elegant glassmorphism */
-  .glass-morph {
-    @apply bg-card/60 backdrop-blur-xl border border-border/50 shadow-lg;
+  .ai-glow-hover {
+    @apply transition-all duration-300 hover:shadow-[0_0_20px_rgba(93,187,137,0.15)] hover:border-primary/30;
   }
-
-  /* Refined Glow Effects */
-  .glow-primary {
-    @apply shadow-[0_0_20px_-5px_rgba(var(--primary),0.3)];
-  }
-
-  /* Inputs refined */
-  .input-refined {
-    @apply h-11 bg-secondary/50 border-border/60 rounded-xl px-4 text-sm focus:ring-2 focus:ring-primary/10 focus:border-primary/40 transition-all duration-300;
-  }
-
-  /* Better spacing for sections */
-  .section-container {
-    @apply space-y-10 p-2 md:p-4;
-  }
-
-  /* ─── Kusanali Design System Classes ──────────────────────── */
-  .glass {
-    background: rgba(253, 250, 246, 0.75);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(95, 130, 110, 0.1);
-    box-shadow: 0 4px 24px rgba(47, 93, 80, 0.06);
-  }
-
-  .gradient-text {
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    background-image: linear-gradient(to right, #2F5D50, #5DBB89, #A7D7C5);
-  }
-
-  .premium-card {
-    background: hsl(var(--card));
-    border: 1px solid hsla(var(--border));
-    border-radius: var(--radius);
-    padding: 1.5rem;
-    box-shadow:
-      0 1px 2px rgba(47, 93, 80, 0.04),
-      0 4px 18px rgba(47, 93, 80, 0.07);
-    transition: all 0.2s ease;
-  }
-
-  .premium-card:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      0 2px 4px rgba(47, 93, 80, 0.05),
-      0 12px 36px rgba(47, 93, 80, 0.11);
-  }
-
-  .text-glow {
-    text-shadow: 0 0 20px rgba(93, 187, 137, 0.45);
-  }
-
-  .page-enter {
-    animation: fadeInUp 0.45s ease-out forwards;
-  }
-
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes field-pulse {
-    0%, 100% { border-color: rgba(95, 130, 110, 0.18); }
-    50%       { border-color: #A7D7C5; }
-  }
-
-  .field-pulse {
-    animation: field-pulse 2.2s ease-in-out infinite;
-  }
-}
-
-@layer utilities {
-  .modal-open * {
-    transition: none !important;
-    animation: none !important;
-    transform: none !important;
-  }
-
-  .modal-open input[required]:placeholder-shown,
-  .modal-open textarea[required]:placeholder-shown {
-    animation: field-pulse 2.2s ease-in-out infinite !important;
-  }
-
-  .custom-dot-icon { background: none !important; border: none !important; }
-}
-
-/* Custom Scrollbar for a cleaner look */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
 }

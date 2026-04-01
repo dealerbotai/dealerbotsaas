@@ -2,7 +2,6 @@
 
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
 import { 
     LayoutDashboard, 
@@ -13,8 +12,6 @@ import {
     LogOut,
     Store,
     Zap,
-    Sun,
-    Moon,
     CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -38,7 +35,6 @@ const secondaryItems = [
 export const Sidebar = () => {
   const location = useLocation();
   const { signOut, user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const { workspace } = useWhatsApp();
 
   const planName = workspace?.plan || 'free';
@@ -89,14 +85,6 @@ export const Sidebar = () => {
       </div>
 
       <div className="mt-auto pt-8 border-t border-border/50 space-y-6">
-        <button 
-            onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-300 group"
-        >
-            {theme === 'dark' ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
-            <span className="text-sm font-bold tracking-tight">{theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}</span>
-        </button>
-
         <div className="flex items-center gap-4 p-4 rounded-[24px] bg-secondary/40 border border-border/50">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground text-xs font-black shadow-inner">
             {user?.email?.[0] || 'U'}
