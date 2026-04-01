@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Key, Save, Eye, EyeOff, CheckCircle2, Cpu, ShieldCheck, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { sileo as toast } from 'sileo';
 import { supabase } from '@/lib/supabase';
 
 interface GroqConfigProps {

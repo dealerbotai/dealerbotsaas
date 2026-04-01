@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { Loader2, QrCode, CheckCircle2, MessageCircle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { WhatsAppInstance } from '@/hooks/use-whatsapp-instances';
-import { toast } from 'sonner';
+import { sileo as toast } from 'sileo';
 
 interface AddChannelModalProps {
   isOpen: boolean;

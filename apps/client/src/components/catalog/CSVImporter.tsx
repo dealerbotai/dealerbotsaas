@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileUp, Trash2, Check, AlertCircle, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { sileo as toast } from 'sileo';
 import { supabase } from '@/lib/supabase';
 import { parseCSV, CSVProduct } from '@/utils/csv-parser';
 

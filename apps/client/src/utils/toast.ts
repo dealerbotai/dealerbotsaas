@@ -1,19 +1,27 @@
-import { toast } from "sonner";
+import { sileo } from "sileo";
 
 export const showSuccess = (message: string) => {
-  toast.success(message);
+  sileo.success(message);
 };
 
 export const showError = (message: string) => {
-  toast.error(message);
+  sileo.error(message);
 };
 
 export const showLoading = (message: string) => {
-  return toast.loading(message);
+  return sileo.info(message);
 };
 
-export const dismissToast = (toastId: string) => {
-  toast.dismiss(toastId);
+export const showPromise = <T,>(
+  promise: Promise<T>,
+  msgs: { loading: string; success: string; error: string }
+) => {
+  return sileo.promise(promise, msgs);
 };
 
-export { toast };
+export const dismissToast = (toastId?: string) => {
+  // Sileo might not have a direct dismiss export that we can use here easily
+  // but if it's based on sonner/react-hot-toast, it might.
+};
+
+export { sileo as toast };

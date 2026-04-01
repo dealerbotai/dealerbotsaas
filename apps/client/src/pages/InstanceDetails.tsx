@@ -39,7 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { sileo as toast } from 'sileo';
 
 const InstanceDetails = () => {
   const { id } = useParams();

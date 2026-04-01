@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { socket } from '@/lib/socket';
-import { toast } from 'sonner';
+import { sileo as toast } from 'sileo';
 
 export interface Store {
     id: string;

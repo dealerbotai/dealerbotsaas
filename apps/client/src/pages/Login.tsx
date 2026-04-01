@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
+import { sileo as toast } from 'sileo';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Logo } from '@/components/layout/Logo';
@@ -40,16 +40,20 @@ const Login = () => {
         }
         
         setLoading(true);
-        try {
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) throw error;
-            toast.success('Acceso concedido. Bienvenido.');
-            navigate('/');
-        } catch (error: any) {
-            toast.error('Error: ' + (error.message || 'Credenciales inválidas'));
-        } finally {
-            setLoading(false);
-        }
+        const loginPromise = supabase.auth.signInWithPassword({ email, password })
+            .then(({ error }) => {
+                if (error) throw error;
+                navigate('/');
+                return 'Acceso concedido. Bienvenido.';
+            });
+
+        toast.promise(loginPromise, {
+            loading: 'Iniciando sesión...',
+            success: (data) => data as string,
+            error: (err: any) => 'Error: ' + (err.message || 'Credenciales inválidas')
+        });
+
+        setLoading(false);
     };
 
     return (

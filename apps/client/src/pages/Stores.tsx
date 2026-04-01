@@ -49,7 +49,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
+import { sileo as toast } from 'sileo';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -112,41 +112,59 @@ const Stores = () => {
     const handleAddStore = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        await addStore(name);
+        const promise = addStore(name).then(() => {
+            setIsAddOpen(false);
+            setName('');
+            return 'Tienda creada correctamente';
+        });
+
+        toast.promise(promise, {
+            loading: 'Creando tienda...',
+            success: (data) => data as string,
+            error: 'Error al crear la tienda'
+        });
         setIsSubmitting(false);
-        setIsAddOpen(false);
-        setName('');
     };
 
     const handleAddManualProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedStore) return;
         setIsSubmitting(true);
-        const product = await addProductManually({
+        
+        const promise = addProductManually({
             ...manualProduct,
             price: parseFloat(manualProduct.price),
             stock: parseInt(manualProduct.stock) || 0,
             store_id: selectedStore.id
+        }).then((product) => {
+            if (product) {
+                setStoreProducts(prev => [product, ...prev]);
+                setIsManualProductOpen(false);
+                setManualProduct({ 
+                    name: '', 
+                    handle: '', 
+                    category: '', 
+                    price: '', 
+                    stock: '0', 
+                    description: '', 
+                    image_url: '', 
+                    image_base64: '' 
+                });
+                return 'Producto añadido con éxito';
+            }
+            throw new Error('No se pudo añadir el producto');
         });
-        if (product) {
-            setStoreProducts(prev => [product, ...prev]);
-            setIsManualProductOpen(false);
-            setManualProduct({ 
-                name: '', 
-                handle: '', 
-                category: '', 
-                price: '', 
-                stock: '0', 
-                description: '', 
-                image_url: '', 
-                image_base64: '' 
-            });
-        }
+
+        toast.promise(promise, {
+            loading: 'Añadiendo producto...',
+            success: (data) => data as string,
+            error: (err: any) => 'Error: ' + err.message
+        });
         setIsSubmitting(false);
     };
 
     const toggleProductStatus = async (id: string, currentStatus: boolean) => {
-        try {
+        const promise = (async () => {
             const { error } = await supabase
                 .from('products')
                 .update({ is_active: !currentStatus })
@@ -154,22 +172,31 @@ const Stores = () => {
 
             if (error) throw error;
             setStoreProducts(prev => prev.map(p => p.id === id ? { ...p, is_active: !currentStatus } : p));
-            toast.success('Estado actualizado');
-        } catch (error: any) {
-            toast.error('Error: ' + error.message);
-        }
+            return 'Estado actualizado';
+        })();
+
+        toast.promise(promise, {
+            loading: 'Actualizando estado...',
+            success: (data) => data as string,
+            error: (err: any) => 'Error: ' + err.message
+        });
     };
 
     const deleteProduct = async (id: string) => {
         if (!confirm('¿Eliminar producto?')) return;
-        try {
+        
+        const promise = (async () => {
             const { error } = await supabase.from('products').delete().eq('id', id);
             if (error) throw error;
             setStoreProducts(prev => prev.filter(p => p.id !== id));
-            toast.success('Producto eliminado');
-        } catch (error: any) {
-            toast.error('Error al eliminar: ' + error.message);
-        }
+            return 'Producto eliminado';
+        })();
+
+        toast.promise(promise, {
+            loading: 'Eliminando producto...',
+            success: (data) => data as string,
+            error: (err: any) => 'Error al eliminar: ' + err.message
+        });
     };
 
     const filteredProducts = storeProducts.filter(p => {
@@ -365,8 +392,8 @@ const Stores = () => {
                                                 "rounded-xl bg-card/50 overflow-hidden shrink-0 border border-border/50",
                                                 productView === 'grid' ? "w-20 h-20" : "w-12 h-12"
                                             )}>
-                                                {product.image_base64 ? (
-                                                    <img src={product.image_base64} alt={product.name} className="w-full h-full object-cover" />
+                                                {product.image_base64 || product.image_url ? (
+                                                    <img src={product.image_base64 || product.image_url} alt={product.name} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center text-slate-600">
                                                         <ImageIcon className={cn(productView === 'grid' ? "w-6 h-6" : "w-4 h-4")} />

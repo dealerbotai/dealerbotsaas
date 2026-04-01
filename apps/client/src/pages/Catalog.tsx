@@ -96,8 +96,8 @@ const Catalog = () => {
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center border border-primary/10 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
-                        {product.image_base64 ? (
-                          <img src={product.image_base64} alt={product.name} className="w-full h-full object-cover" />
+                        {product.image_base64 || product.image_url ? (
+                          <img src={product.image_base64 || product.image_url} alt={product.name} className="w-full h-full object-cover" />
                         ) : (
                           <Plus className="w-6 h-6 text-primary" />
                         )}
