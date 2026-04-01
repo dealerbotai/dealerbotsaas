@@ -70,54 +70,54 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ instanceId }) => {
           icon: <XCircle className="w-3 h-3 text-destructive" />,
           color: 'text-destructive',
           bg: 'bg-destructive/10',
-          border: 'border-destructive/20'
+          border: 'border-none'
         };
       case 'warn':
         return {
           icon: <AlertTriangle className="w-3 h-3 text-amber-500" />,
           color: 'text-amber-500',
           bg: 'bg-amber-500/10',
-          border: 'border-amber-500/20'
+          border: 'border-none'
         };
       case 'success':
         return {
           icon: <CheckCircle2 className="w-3 h-3 text-green-500" />,
           color: 'text-green-500',
           bg: 'bg-green-500/10',
-          border: 'border-green-500/20'
+          border: 'border-none'
         };
       case 'bot-in':
         return {
           icon: <MessageSquare className="w-3 h-3 text-blue-400" />,
           color: 'text-blue-400',
           bg: 'bg-blue-400/10',
-          border: 'border-blue-400/20'
+          border: 'border-none'
         };
       case 'bot-out':
         return {
           icon: <Bot className="w-3 h-3 text-purple-400" />,
           color: 'text-purple-400',
           bg: 'bg-purple-400/10',
-          border: 'border-purple-400/20'
+          border: 'border-none'
         };
       default:
         return {
           icon: <Info className="w-3 h-3 text-primary/70" />,
           color: 'text-foreground/80',
           bg: 'bg-secondary/30',
-          border: 'border-border'
+          border: 'border-none'
         };
     }
   };
 
   return (
-    <div className="flex flex-col h-[500px] bg-background/40 backdrop-blur-xl rounded-[32px] border border-border overflow-hidden shadow-2xl relative">
+    <div className="flex flex-col h-[500px] bg-background/40 backdrop-blur-xl rounded-[32px] border-none overflow-hidden shadow-2xl relative">
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-background/20 pointer-events-none" />
       
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/60 relative z-10">
+      <div className="flex items-center justify-between px-6 py-4 bg-background/60 relative z-10 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
+          <div className="p-2 bg-primary/10 rounded-lg shadow-inner">
              <Terminal className="w-4 h-4 text-primary" />
           </div>
           <div>
@@ -125,7 +125,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ instanceId }) => {
             <span className="text-[8px] font-medium text-muted-foreground uppercase tracking-[1px]">Real-time system synchronization</span>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-secondary/40 px-3 py-1 rounded-full border border-border">
+        <div className="flex items-center gap-2 bg-secondary/40 px-3 py-1 rounded-full shadow-inner">
            <div className={cn("w-1.5 h-1.5 rounded-full", isConnected ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-destructive")} />
            <span className="text-[9px] font-bold text-foreground/70 uppercase tracking-wider">
              {isConnected ? 'Sync Active' : 'Disconnected'}
@@ -137,7 +137,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ instanceId }) => {
       <ScrollArea className="flex-1 p-6 font-mono relative z-10" ref={scrollRef}>
         {logs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[350px] space-y-4 opacity-40">
-            <div className="p-5 bg-secondary/50 rounded-full border border-dashed border-border animate-pulse">
+            <div className="p-5 bg-secondary/50 rounded-full shadow-inner animate-pulse">
                 <Activity className="w-8 h-8 text-muted-foreground" />
             </div>
             <div className="text-center">
@@ -151,7 +151,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ instanceId }) => {
               const styles = getLogStyles(log.level);
               return (
                 <div key={i} className={cn(
-                  "group flex flex-col gap-1 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.01]",
+                  "group flex flex-col gap-1 p-2.5 rounded-xl transition-all duration-200 hover:scale-[1.01] shadow-sm",
                   styles.bg,
                   styles.border
                 )}>
@@ -185,7 +185,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ instanceId }) => {
       </ScrollArea>
       
       {/* Footer */}
-      <div className="px-6 py-3 border-t border-border bg-background/60 flex items-center justify-between relative z-10">
+      <div className="px-6 py-3 bg-background/60 flex items-center justify-between relative z-10 shadow-inner">
         <div className="flex items-center gap-2">
             <div className="w-1 h-1 bg-primary rounded-full animate-ping" />
             <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Instance ID: {instanceId?.slice(0,8)}</span>

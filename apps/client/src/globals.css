@@ -29,7 +29,7 @@
     --destructive: 9 45% 61%;    /* #C77B6E */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 150 16% 44% / 0.13;
+    --border: 150 16% 44% / 0.08;
     --input: 38 34% 89%;
     --ring: 148 41% 55%;
 
@@ -81,16 +81,13 @@
     --accent-foreground: 165 33% 27%;
     --destructive: 9 45% 61%;
     --destructive-foreground: 0 0% 100%;
-    --border: 150 16% 44% / 0.13;
+    --border: 150 16% 44% / 0.08;
     --input: 38 34% 89%;
     --ring: 148 41% 55%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
@@ -99,7 +96,7 @@
 
 @layer components {
   .glass-card {
-    @apply bg-card/50 backdrop-blur-md border border-border/50 shadow-sm;
+    @apply bg-card/50 backdrop-blur-md shadow-sm;
   }
   
   .ai-glow {

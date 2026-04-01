@@ -55,7 +55,7 @@ const Catalog = () => {
           <Button 
             variant="outline" 
             onClick={() => window.history.back()} 
-            className="rounded-2xl h-12 px-6 font-bold border-border/50 hover:bg-accent"
+            className="rounded-2xl h-12 px-6 font-bold shadow-sm border-transparent transition-all hover:bg-accent/10"
           >
             ← Volver
           </Button>
@@ -66,7 +66,7 @@ const Catalog = () => {
         </div>
 
         <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-border/50 pb-4">
+          <div className="flex items-center justify-between border-b border-primary/10 shadow-sm pb-4">
             <h2 className="text-2xl font-bold">Tus Productos ({products.length})</h2>
             <Button variant="ghost" size="sm" onClick={fetchProducts} className="font-bold text-primary">
               Actualizar Lista
@@ -75,7 +75,7 @@ const Catalog = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.length === 0 ? (
-              <div className="col-span-full text-center py-20 bg-accent/20 rounded-[40px] border-2 border-dashed border-border/50">
+              <div className="col-span-full text-center py-20 bg-accent/10 rounded-[40px] shadow-sm shadow-primary/5 transition-all">
                 <div className="bg-background w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
                   <Plus className="w-8 h-8 text-primary" />
                 </div>
@@ -91,7 +91,7 @@ const Catalog = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="group bg-card rounded-[32px] border border-border/50 p-6 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500"
+                  className="group bg-card rounded-[32px] shadow-sm transition-all shadow-primary/5 p-6 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500"
                 >
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-4">
@@ -117,7 +117,7 @@ const Catalog = () => {
                       {product.description || 'Sin descripción disponible.'}
                     </p>
 
-                    <div className="pt-4 border-t border-border/50 flex items-center justify-between">
+                    <div className="pt-4 border-t border-primary/5 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Badge variant={product.is_active ? "default" : "secondary"} className="rounded-full px-4 font-bold h-7">
                             {product.is_active ? 'Disponible' : 'Inactivo'}

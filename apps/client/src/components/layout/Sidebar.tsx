@@ -39,7 +39,7 @@ export const Sidebar = () => {
 
   const planName = workspace?.plan || 'free';
   return (
-    <div className="flex flex-col h-screen w-[280px] bg-card/50 backdrop-blur-xl border-r border-border/50 p-8 transition-all duration-500">
+    <div className="flex flex-col h-screen w-[280px] bg-card/50 backdrop-blur-xl p-8 transition-all duration-500">
       <Logo className="mb-12 px-2" />
 
       <div className="flex flex-col flex-1 gap-10">
@@ -72,7 +72,7 @@ export const Sidebar = () => {
                  <div className={cn(
                    'flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group mb-1',
                    isActive 
-                     ? 'bg-secondary text-foreground border border-border shadow-sm' 
+                     ? 'bg-secondary text-foreground shadow-sm' 
                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                  )}>
                    <item.icon className="w-4.5 h-4.5" />
@@ -84,8 +84,8 @@ export const Sidebar = () => {
         </nav>
       </div>
 
-      <div className="mt-auto pt-8 border-t border-border/50 space-y-6">
-        <div className="flex items-center gap-4 p-4 rounded-[24px] bg-secondary/40 border border-border/50">
+      <div className="mt-auto pt-8 space-y-6">
+        <div className="flex items-center gap-4 p-4 rounded-[24px] bg-secondary/40">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground text-xs font-black shadow-inner">
             {user?.email?.[0] || 'U'}
           </div>

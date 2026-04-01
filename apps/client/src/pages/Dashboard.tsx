@@ -43,7 +43,7 @@ const Dashboard = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
-              className="bg-card border border-border/50 p-6 rounded-3xl shadow-sm"
+              className="bg-card p-6 rounded-3xl shadow-sm"
             >
               <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-2xl ${stat.bg}`}>
@@ -86,7 +86,7 @@ const Dashboard = () => {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center space-y-6 bg-accent/20 rounded-[40px] border-2 border-dashed border-border/50">
+            <div className="flex flex-col items-center justify-center py-20 text-center space-y-6 bg-accent/10 rounded-[40px] shadow-sm">
               <div className="p-6 bg-background rounded-full shadow-xl">
                 <MessageSquare className="w-12 h-12 text-muted-foreground" />
               </div>

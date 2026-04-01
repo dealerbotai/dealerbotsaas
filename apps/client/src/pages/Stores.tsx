@@ -218,7 +218,7 @@ const Stores = () => {
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="flex items-center gap-4">
-                            <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 border-border/50 bg-card/50 text-foreground hover:bg-card" onClick={() => setSelectedStore(null)}>
+                            <Button variant="outline" size="icon" className="rounded-xl h-10 w-10 shadow-sm bg-card/50 text-foreground hover:bg-card" onClick={() => setSelectedStore(null)}>
                                 <ArrowLeft className="w-4 h-4" />
                             </Button>
                             <div>
@@ -306,12 +306,12 @@ const Stores = () => {
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                             <div className="relative flex-1 max-w-md">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input placeholder="Buscar productos..." className="pl-10 h-11 bg-card/50 border-border/50 rounded-2xl text-foreground" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                                <Input placeholder="Buscar productos..." className="pl-10 h-11 bg-card/50 shadow-sm rounded-2xl text-foreground" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                             </div>
                             
                             <div className="flex flex-wrap items-center gap-3">
                                 {categories.length > 1 && (
-                                    <div className="flex items-center gap-1.5 bg-card/50 p-1 rounded-2xl border border-border/50 overflow-x-auto max-w-xs sm:max-w-none no-scrollbar">
+                                    <div className="flex items-center gap-1.5 bg-card/50 p-1 rounded-2xl border shadow-sm overflow-x-auto max-w-xs sm:max-w-none no-scrollbar">
                                         {categories.map((cat) => (
                                             <Button 
                                                 key={cat}
@@ -329,12 +329,12 @@ const Stores = () => {
                                     </div>
                                 )}
 
-                                <div className="flex items-center gap-2 bg-card/50 p-1 rounded-2xl border border-border/50">
+                                <div className="flex items-center gap-2 bg-card/50 p-1 rounded-2xl border shadow-sm">
                                     <Button variant="ghost" size="sm" onClick={() => setStatusFilter('all')} className={cn("rounded-xl px-4 h-9 text-xs font-bold", statusFilter === 'all' && "bg-card text-primary")}>Todos</Button>
                                     <Button variant="ghost" size="sm" onClick={() => setStatusFilter('active')} className={cn("rounded-xl px-4 h-9 text-xs font-bold", statusFilter === 'active' && "bg-card text-primary")}>Activos</Button>
                                 </div>
 
-                                <div className="flex items-center gap-2 bg-card/50 p-1 rounded-2xl border border-border/50">
+                                <div className="flex items-center gap-2 bg-card/50 p-1 rounded-2xl border shadow-sm">
                                     <Button 
                                         variant="ghost" 
                                         size="icon" 
@@ -368,7 +368,7 @@ const Stores = () => {
                                 {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-40 w-full rounded-3xl bg-card/50" />)}
                             </div>
                         ) : filteredProducts.length === 0 ? (
-                            <div className="py-20 text-center space-y-4 bg-card/50 rounded-[40px] border-2 border-dashed border-border/50">
+                            <div className="py-20 text-center space-y-4 bg-card/50 rounded-[40px] border-2 border-dashed shadow-sm">
                                 <Package className="w-12 h-12 text-slate-600 mx-auto" />
                                 <p className="text-muted-foreground font-medium">No hay productos. ¡Importa un CSV para comenzar!</p>
                             </div>
@@ -381,7 +381,7 @@ const Stores = () => {
                                     <div 
                                         key={product.id} 
                                         className={cn(
-                                            "bg-card/50 border border-border/50 transition-all group",
+                                            "bg-card/50 border shadow-sm transition-all group",
                                             productView === 'grid' 
                                                 ? "rounded-[24px] p-4 flex gap-4 hover:bg-card" 
                                                 : "rounded-2xl p-3 flex items-center justify-between hover:bg-card"
@@ -389,7 +389,7 @@ const Stores = () => {
                                     >
                                         <div className="flex items-center gap-4 flex-1 min-w-0">
                                             <div className={cn(
-                                                "rounded-xl bg-card/50 overflow-hidden shrink-0 border border-border/50",
+                                                "rounded-xl bg-card/50 overflow-hidden shrink-0 border shadow-sm",
                                                 productView === 'grid' ? "w-20 h-20" : "w-12 h-12"
                                             )}>
                                                 {product.image_base64 || product.image_url ? (
@@ -441,10 +441,10 @@ const Stores = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="bg-card/50 border border-border/50 rounded-[32px] overflow-hidden">
+                            <div className="bg-card/50 border shadow-sm rounded-[32px] overflow-hidden">
                                 <Table>
                                     <TableHeader>
-                                        <TableRow className="hover:bg-transparent border-border/50">
+                                        <TableRow className="hover:bg-transparent shadow-sm">
                                             <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground py-5 pl-8">Imagen</TableHead>
                                             <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground py-5">Nombre</TableHead>
                                             <TableHead className="text-[10px] font-black uppercase tracking-widest text-muted-foreground py-5">Categoría</TableHead>
@@ -455,9 +455,9 @@ const Stores = () => {
                                     </TableHeader>
                                     <TableBody>
                                         {filteredProducts.map((product) => (
-                                            <TableRow key={product.id} className="hover:bg-card/50 border-border/50 group transition-colors">
+                                            <TableRow key={product.id} className="hover:bg-card/50 shadow-sm group transition-colors">
                                                 <TableCell className="py-4 pl-8">
-                                                    <div className="w-12 h-12 rounded-xl bg-card/50 overflow-hidden border border-border/50">
+                                                    <div className="w-12 h-12 rounded-xl bg-card/50 overflow-hidden border shadow-sm">
                                                         {product.image_base64 ? (
                                                             <img src={product.image_base64} alt={product.name} className="w-full h-full object-cover" />
                                                         ) : (
@@ -515,10 +515,10 @@ const Stores = () => {
                     <div className="flex items-center gap-4">
                         <div className="relative w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input placeholder="Buscar tiendas..." className="pl-10 h-11 bg-card/50 border-border/50 rounded-2xl text-foreground" value={storeSearchQuery} onChange={(e) => setStoreSearchQuery(e.target.value)} />
+                            <Input placeholder="Buscar tiendas..." className="pl-10 h-11 bg-card/50 shadow-sm rounded-2xl text-foreground" value={storeSearchQuery} onChange={(e) => setStoreSearchQuery(e.target.value)} />
                         </div>
 
-                        <div className="flex items-center gap-2 bg-card/50 p-1 rounded-2xl border border-border/50">
+                        <div className="flex items-center gap-2 bg-card/50 p-1 rounded-2xl border shadow-sm">
                             <Button 
                               variant="ghost" 
                               size="icon" 
@@ -543,7 +543,7 @@ const Stores = () => {
                                     <Plus className="w-4 h-4" /> Nueva Tienda
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-[450px] border-border/50 shadow-2xl rounded-[32px] p-8 bg-background text-foreground">
+                            <DialogContent className="sm:max-w-[450px] shadow-sm shadow-2xl rounded-[32px] p-8 bg-background text-foreground">
                                 <DialogHeader>
                                     <DialogTitle className="text-2xl font-black flex items-center gap-3">
                                        <div className="bg-primary p-2 rounded-xl">
@@ -553,7 +553,7 @@ const Stores = () => {
                                     </DialogTitle>
                                 </DialogHeader>
                                 <form onSubmit={handleAddStore} className="space-y-6 mt-6">
-                                    <Input placeholder="Nombre de la Tienda" className="h-12 bg-card/50 border-border/50 rounded-xl text-foreground" value={name} onChange={(e) => setName(e.target.value)} required />
+                                    <Input placeholder="Nombre de la Tienda" className="h-12 bg-card/50 shadow-sm rounded-xl text-foreground" value={name} onChange={(e) => setName(e.target.value)} required />
                                     <Button disabled={isSubmitting} className="w-full h-12 bg-primary hover:bg-cyan-400 text-[#0f172a] rounded-xl font-black uppercase text-xs tracking-widest ai-glow-hover">
                                         {isSubmitting ? 'Guardando...' : 'Crear Tienda'}
                                     </Button>
@@ -571,7 +571,7 @@ const Stores = () => {
                         {loading ? (
                             [1, 2, 3].map(i => <Skeleton key={i} className="h-48 w-full rounded-[32px] bg-card/50" />)
                         ) : filteredStores.length === 0 ? (
-                            <div className="col-span-full flex flex-col items-center justify-center py-20 bg-card/50 rounded-[40px] border-2 border-dashed border-border/50 text-center">
+                            <div className="col-span-full flex flex-col items-center justify-center py-20 bg-card/50 rounded-[40px] border-2 border-dashed shadow-sm text-center">
                                 <StoreIcon className="w-12 h-12 text-slate-600 mb-4" />
                                 <h3 className="text-lg font-bold text-foreground">No hay tiendas</h3>
                             </div>
@@ -598,7 +598,7 @@ const Stores = () => {
                                                 <CardTitle className="text-xl font-black mt-4 text-foreground uppercase">{store.name}</CardTitle>
                                                 <CardDescription className="text-muted-foreground font-medium">ID: {store.id.slice(0,8)}</CardDescription>
                                             </CardHeader>
-                                            <CardFooter className="pt-4 border-t border-border/50 flex justify-between items-center">
+                                            <CardFooter className="pt-4 border-t shadow-sm flex justify-between items-center">
                                                <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest">
                                                   <Package className="w-3 h-3" /> Gestionar Catálogo
                                                </div>
@@ -606,7 +606,7 @@ const Stores = () => {
                                             </CardFooter>
                                         </Card>
                                     ) : (
-                                        <div className="bg-card/50 border border-border/50 rounded-3xl p-4 flex items-center justify-between hover:bg-card transition-all group cursor-pointer" onClick={() => setSelectedStore(store)}>
+                                        <div className="bg-card/50 border shadow-sm rounded-3xl p-4 flex items-center justify-between hover:bg-card transition-all group cursor-pointer" onClick={() => setSelectedStore(store)}>
                                             <div className="flex items-center gap-6">
                                                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                                                     <StoreIcon className="w-6 h-6" />

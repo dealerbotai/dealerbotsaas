@@ -25,7 +25,7 @@ export const Logo = ({ className, size = 'md' }: LogoProps) => {
         
         {/* Icon Container */}
         <div className={cn(
-          "relative flex items-center justify-center bg-card border border-primary/10 rounded-xl overflow-hidden shadow-sm",
+          "relative flex items-center justify-center bg-card rounded-xl overflow-hidden shadow-sm",
           currentSize.container
         )}>
           {/* Logo Image */}

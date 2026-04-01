@@ -90,7 +90,7 @@ const InstanceDetails = () => {
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         
         {/* Header Compacto y Elegante */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-card p-5 rounded-[32px] border border-border shadow-sm">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-card p-5 rounded-[32px] shadow-sm">
           <div className="flex items-center gap-5">
             <Link to="/">
                 <Button variant="ghost" size="icon" className="h-11 w-11 rounded-xl bg-secondary hover:bg-accent text-muted-foreground hover:text-primary transition-all">
@@ -106,7 +106,7 @@ const InstanceDetails = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-3 bg-secondary/50 p-2 rounded-2xl border border-border">
+          <div className="flex items-center gap-3 bg-secondary/50 p-2 rounded-2xl shadow-sm">
              <div className="px-3 text-right">
                 <p className={cn("text-[9px] font-black uppercase tracking-widest", instance.bot_enabled ? "text-primary" : "text-muted-foreground")}>
                     {instance.bot_enabled ? 'IA Activa' : 'Manual'}
@@ -121,7 +121,7 @@ const InstanceDetails = () => {
         </div>
 
         <Tabs defaultValue="config" className="space-y-6">
-            <TabsList className="bg-secondary/50 p-1 rounded-2xl h-12 border border-border inline-flex">
+            <TabsList className="bg-secondary/50 p-1 rounded-2xl h-12 inline-flex shadow-inner">
                 <TabsTrigger value="config" className="rounded-xl px-5 font-black uppercase text-[9px] tracking-[2px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all gap-2">
                     <Settings className="w-3.5 h-3.5" /> Config
                 </TabsTrigger>
@@ -137,7 +137,7 @@ const InstanceDetails = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-6">
                         
-                        <Card className="rounded-[32px] border-border bg-card shadow-xl overflow-hidden">
+                        <Card className="rounded-[32px] border-none bg-card shadow-xl overflow-hidden">
                             <CardContent className="p-8 space-y-10">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-6">
@@ -150,10 +150,10 @@ const InstanceDetails = () => {
                                                 value={instance.agent_id || "none"} 
                                                 onValueChange={(val) => assignAgent(instance.id, val === "none" ? null : val)}
                                             >
-                                                <SelectTrigger className="h-12 bg-secondary/50 border-border rounded-xl font-bold text-foreground shadow-sm focus:ring-primary/20 transition-all text-xs">
+                                                <SelectTrigger className="h-12 bg-secondary/50 border-none rounded-xl font-bold text-foreground shadow-sm focus:ring-primary/20 transition-all text-xs">
                                                     <SelectValue placeholder="Elegir Agente..." />
                                                 </SelectTrigger>
-                                                <SelectContent className="rounded-xl border-border shadow-2xl bg-popover text-popover-foreground">
+                                                <SelectContent className="rounded-xl border-none shadow-2xl bg-popover text-popover-foreground">
                                                     <SelectItem value="none" className="font-bold text-muted-foreground py-2">Sin Agente</SelectItem>
                                                     {agents.map(agent => (
                                                         <SelectItem key={agent.id} value={agent.id} className="font-bold py-2">✨ {agent.name}</SelectItem>
@@ -171,10 +171,10 @@ const InstanceDetails = () => {
                                                 defaultValue={instance.scope || "all"} 
                                                 onValueChange={(val: any) => updateScope(val)}
                                             >
-                                                <SelectTrigger className="h-12 bg-secondary/50 border-border rounded-xl font-bold text-foreground shadow-sm focus:ring-primary/20 transition-all text-xs">
+                                                <SelectTrigger className="h-12 bg-secondary/50 border-none rounded-xl font-bold text-foreground shadow-sm focus:ring-primary/20 transition-all text-xs">
                                                     <SelectValue placeholder="Alcance..." />
                                                 </SelectTrigger>
-                                                <SelectContent className="rounded-xl border-border shadow-2xl bg-popover text-popover-foreground">
+                                                <SelectContent className="rounded-xl border-none shadow-2xl bg-popover text-popover-foreground">
                                                     <SelectItem value="all" className="font-bold py-2 text-xs">🌍 Todas las Conversaciones</SelectItem>
                                                     <SelectItem value="groups" className="font-bold py-2 text-xs">👥 Solo Grupos</SelectItem>
                                                     <SelectItem value="specific" className="font-bold py-2 text-xs">🎯 Solo Chats Directos</SelectItem>
@@ -193,10 +193,10 @@ const InstanceDetails = () => {
                                                 value={instance.store_id || "none"} 
                                                 onValueChange={(val) => assignStore(instance.id, val === "none" ? null : val)}
                                             >
-                                                <SelectTrigger className="h-12 bg-secondary/50 border-border rounded-xl font-bold text-foreground shadow-sm focus:ring-primary/20 transition-all text-xs">
+                                                <SelectTrigger className="h-12 bg-secondary/50 border-none rounded-xl font-bold text-foreground shadow-sm focus:ring-primary/20 transition-all text-xs">
                                                     <SelectValue placeholder="Tienda..." />
                                                 </SelectTrigger>
-                                                <SelectContent className="rounded-xl border-border shadow-2xl bg-popover text-popover-foreground">
+                                                <SelectContent className="rounded-xl border-none shadow-2xl bg-popover text-popover-foreground">
                                                     <SelectItem value="none" className="font-bold text-muted-foreground py-2 text-xs">Catálogo Global</SelectItem>
                                                     {stores.map(store => (
                                                         <SelectItem key={store.id} value={store.id} className="font-bold py-2 text-xs">🏪 {store.name}</SelectItem>
@@ -206,8 +206,8 @@ const InstanceDetails = () => {
                                         </div>
 
                                         <div className={cn(
-                                            "p-4 rounded-2xl border transition-all h-[100px] flex flex-col justify-center",
-                                            instance.store ? "bg-green-500/5 border-green-500/10" : "bg-orange-500/5 border-orange-500/10 border-dashed"
+                                            "p-4 rounded-2xl transition-all h-[100px] flex flex-col justify-center shadow-inner",
+                                            instance.store ? "bg-green-500/5" : "bg-orange-500/5"
                                         )}>
                                             <div className="flex items-center gap-2 mb-1.5">
                                                 <Target className={cn("w-3 h-3", instance.store ? "text-green-500" : "text-orange-500")} />
@@ -229,15 +229,15 @@ const InstanceDetails = () => {
                     </div>
 
                     <div className="space-y-6">
-                        <Card className="rounded-[32px] border-border bg-card shadow-lg overflow-hidden">
-                            <CardHeader className="p-6 border-b border-border bg-secondary/30">
+                        <Card className="rounded-[32px] border-none bg-card shadow-lg overflow-hidden">
+                            <CardHeader className="p-6 bg-secondary/30">
                                 <CardTitle className="text-[9px] font-black text-muted-foreground uppercase tracking-[3px] flex items-center gap-2">
                                     <Clock className="w-3 h-3" /> Estado de Sesión
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-6 space-y-6">
                                 <div className="space-y-4">
-                                    <div className="flex justify-between items-center bg-secondary/50 p-3 rounded-xl">
+                                    <div className="flex justify-between items-center bg-secondary/50 p-3 rounded-xl shadow-inner">
                                         <span className="text-[10px] font-bold text-muted-foreground uppercase">Motor</span>
                                         <Badge className={cn("text-[9px] font-black border-none px-2.5 py-0.5", 
                                             instance.status === 'connected' ? "bg-green-500/20 text-green-500" : "bg-destructive/20 text-destructive"
@@ -253,10 +253,10 @@ const InstanceDetails = () => {
                                     </div>
                                 </div>
 
-                                <div className="space-y-3 pt-4 border-t border-border">
+                                <div className="space-y-3 pt-4 shadow-sm rounded-xl">
                                     {instance.status === 'connected' && instance.platform !== 'messenger' && (
                                         <Link to={`/instances/${instance.id}/web`}>
-                                            <Button className="w-full h-11 rounded-xl font-black bg-secondary hover:bg-accent text-foreground border border-border gap-3 uppercase text-[10px] tracking-widest transition-all">
+                                            <Button className="w-full h-11 rounded-xl font-black bg-secondary hover:bg-accent text-foreground border-none gap-3 uppercase text-[10px] tracking-widest transition-all">
                                                 <MessageSquare className="w-4 h-4 text-primary" /> WhatsApp Mirror
                                             </Button>
                                         </Link>
@@ -266,7 +266,7 @@ const InstanceDetails = () => {
                                         className={cn(
                                             "w-full h-11 rounded-xl font-black gap-3 uppercase text-[10px] tracking-widest transition-all shadow-lg",
                                             instance.status === 'connected' 
-                                                ? "bg-secondary border border-border text-muted-foreground hover:bg-accent"
+                                                ? "bg-secondary text-muted-foreground hover:bg-accent"
                                                 : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20"
                                         )}
                                         onClick={() => { startInstance(instance.id, instance.name); if (['disconnected', 'expired', 'qr_ready'].includes(instance.status)) setIsModalOpen(true); }}
@@ -278,7 +278,7 @@ const InstanceDetails = () => {
                             </CardContent>
                         </Card>
 
-                        <Card className="rounded-[32px] border-destructive/10 bg-destructive/5 shadow-none overflow-hidden border">
+                        <Card className="rounded-[32px] bg-destructive/5 shadow-none overflow-hidden border-none">
                             <CardContent className="p-6 space-y-4">
                                 <p className="text-[9px] text-destructive/60 font-black uppercase tracking-widest">Zona de Peligro</p>
                                 <Button 
@@ -339,15 +339,15 @@ const InstanceDetails = () => {
 
 const CommandInfo = ({ cmd, desc, example, highlight }: any) => (
     <div className={cn(
-        "p-6 rounded-[28px] border transition-all flex flex-col justify-between h-full",
-        highlight ? "bg-primary/10 border-primary/20 shadow-lg shadow-primary/5" : "bg-card border-border"
+        "p-6 rounded-[28px] transition-all flex flex-col justify-between h-full shadow-sm",
+        highlight ? "bg-primary/10 shadow-lg shadow-primary/5" : "bg-card"
     )}>
         <div>
             <code className="text-sm font-black text-foreground block mb-2">{cmd}</code>
             <p className="text-[11px] text-muted-foreground font-medium leading-relaxed mb-4">{desc}</p>
         </div>
         {example && (
-            <div className="mt-auto p-2.5 bg-secondary rounded-xl border border-border">
+            <div className="mt-auto p-2.5 bg-secondary rounded-xl shadow-inner">
                 <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">Ejemplo</p>
                 <code className="text-[9px] text-primary/80 font-mono break-all">{example}</code>
             </div>

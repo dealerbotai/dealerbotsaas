@@ -1,0 +1,2 @@
+-- Añadir política RLS para permitir SELECT público en productos (ya existe)
+-- Esta política ya fue creada en la migración anterior

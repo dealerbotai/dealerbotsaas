@@ -44,7 +44,7 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="security" className="outline-none">
-            <div className="bg-card border border-border/50 rounded-[32px] p-8">
+            <div className="bg-card rounded-[32px] p-8 shadow-sm">
               <h3 className="text-xl font-bold mb-6">Seguridad y Privacidad</h3>
               <div className="space-y-6">
                 {[

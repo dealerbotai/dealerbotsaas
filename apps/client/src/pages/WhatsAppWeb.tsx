@@ -207,7 +207,7 @@ const WhatsAppWeb = () => {
          <div className="flex-1 flex overflow-hidden shadow-sm">
             
             {/* Left Sidebar */}
-            <div className="w-[400px] flex flex-col bg-white dark:bg-[#111b21] border-r border-border dark:border-[#222d34]">
+            <div className="w-[400px] flex flex-col bg-white dark:bg-[#111b21] shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10">
                 {/* User Header */}
                 <div className="h-[60px] px-4 flex items-center justify-between bg-[#f0f2f5] dark:bg-[#202c33]">
                     <div className="flex items-center gap-3">
@@ -256,7 +256,7 @@ const WhatsAppWeb = () => {
                     <div className="flex flex-col">
                         {loadingChats ? (
                             Array(8).fill(0).map((_, i) => (
-                                <div key={i} className="flex items-center gap-3 p-3 border-b border-border/50 dark:border-[#222d34]/50">
+                                <div key={i} className="flex items-center gap-3 p-3">
                                     <div className="w-12 h-12 bg-muted rounded-full animate-pulse" />
                                     <div className="flex-1 space-y-2">
                                         <div className="h-4 bg-muted rounded w-1/3 animate-pulse" />
@@ -274,7 +274,7 @@ const WhatsAppWeb = () => {
                                     key={chat.id}
                                     onClick={() => setSelectedChat(chat)}
                                     className={cn(
-                                        "w-full flex items-center gap-3 px-3 py-3 transition-colors border-b border-border/50 dark:border-[#222d34]/50",
+                                        "w-full flex items-center gap-3 px-3 py-3 transition-colors",
                                         selectedChat?.id === chat.id 
                                             ? "bg-[#f0f2f5] dark:bg-[#2a3942]" 
                                             : "hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]"
@@ -310,7 +310,7 @@ const WhatsAppWeb = () => {
                 {selectedChat ? (
                     <>
                         {/* Chat Header */}
-                        <div className="h-[60px] px-4 flex items-center justify-between bg-[#f0f2f5] dark:bg-[#202c33] z-10 shadow-sm border-l border-border/20 dark:border-white/5">
+                        <div className="h-[60px] px-4 flex items-center justify-between bg-[#f0f2f5] dark:bg-[#202c33] z-10 shadow-sm">
                             <div className="flex items-center gap-3">
                                 <Avatar className="w-10 h-10 cursor-pointer">
                                     <AvatarFallback className="bg-[#dfe5e7] dark:bg-[#6a7175]">
@@ -424,7 +424,7 @@ const WhatsAppWeb = () => {
                         </div>
                     </>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center p-10 bg-[#f8f9fa] dark:bg-[#222e35] border-l border-border dark:border-white/5">
+                    <div className="flex-1 flex flex-col items-center justify-center p-10 bg-[#f8f9fa] dark:bg-[#222e35]">
                         <div className="max-w-[560px] text-center flex flex-col items-center">
                             <div className="w-full max-w-[400px] mb-8 opacity-80 dark:opacity-100">
                                 <img 

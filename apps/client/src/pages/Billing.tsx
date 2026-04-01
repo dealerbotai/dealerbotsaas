@@ -40,7 +40,7 @@ const PricingTier = ({
 }) => (
   <div className={cn(
     "premium-card flex flex-col relative overflow-hidden group transition-all duration-500",
-    isCurrent && "border-primary/50 ring-2 ring-primary/10",
+    isCurrent && "shadow-xl shadow-primary/10 ring-1 ring-primary/20",
     isPopular && "scale-105 z-10 shadow-2xl shadow-primary/10"
   )}>
     {isPopular && (
@@ -84,10 +84,10 @@ const PricingTier = ({
       className={cn(
         "w-full h-12 rounded-2xl font-bold transition-all duration-300",
         isCurrent 
-          ? "bg-secondary text-foreground hover:bg-secondary/80 border border-border/50" 
+          ? "bg-secondary text-foreground hover:bg-secondary/80" 
           : isPopular
             ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
-            : "bg-background border border-border/50 hover:bg-secondary/50"
+            : "bg-background hover:bg-secondary/50 shadow-sm"
       )}
     >
       {isCurrent ? 'Plan Actual' : (buttonText || 'Mejorar Plan')}
@@ -122,7 +122,7 @@ const UsageProgress = ({
           <span className="text-xs text-muted-foreground font-medium ml-1">/ {limit === 999 ? '∞' : limit}</span>
         </div>
       </div>
-      <div className="h-2.5 w-full bg-secondary/40 rounded-full overflow-hidden border border-border/10 p-[2px]">
+      <div className="h-2.5 w-full bg-secondary/40 rounded-full overflow-hidden p-[2px]">
         <div 
           className={cn(
             "h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden",
@@ -158,7 +158,7 @@ export default function Billing() {
       <div className="max-w-6xl mx-auto space-y-12 pb-20 page-enter">
         {/* Header Section */}
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary mb-2 glow-primary">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 text-primary mb-2 glow-primary">
             <Shield className="w-4 h-4" />
             <span className="text-[10px] font-black uppercase tracking-wider">Facturación Segura</span>
           </div>
@@ -173,7 +173,7 @@ export default function Billing() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Current Plan Summary */}
           <div className="lg:col-span-2 space-y-8">
-            <div className="premium-card bg-gradient-to-br from-card to-secondary/30 relative overflow-hidden group border-primary/10">
+            <div className="premium-card bg-gradient-to-br from-card to-secondary/30 relative overflow-hidden group shadow-lg">
               <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-700" />
               
               <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -184,7 +184,7 @@ export default function Billing() {
                       <h2 className="text-3xl font-black text-foreground capitalize">
                         Plan {currentPlan}
                       </h2>
-                      <div className="px-3 py-1 rounded-lg bg-primary/20 text-primary border border-primary/20 flex items-center gap-1.5">
+                      <div className="px-3 py-1 rounded-lg bg-primary/30 text-primary flex items-center gap-1.5">
                         <Activity className="w-3.5 h-3.5 animate-pulse" />
                         <span className="text-[11px] font-black">Activo</span>
                       </div>

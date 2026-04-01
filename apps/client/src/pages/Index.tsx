@@ -91,12 +91,12 @@ const Index = () => {
     <MainLayout>
       <div ref={containerRef} className="max-w-[1400px] mx-auto space-y-16">
         {/* Simplified Hero Section */}
-        <section className="relative p-12 md:p-16 rounded-[40px] overflow-hidden border border-border/50 bg-card/30 backdrop-blur-sm">
+        <section className="relative p-12 md:p-16 rounded-[40px] overflow-hidden bg-card/30 backdrop-blur-sm shadow-sm">
           <div ref={heroIconRef} className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
             <Cpu className="w-80 h-80 text-primary" />
           </div>
           <div className="relative z-10 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-[2px] mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[2px] mb-8">
               <Sparkles className="w-3 h-3" /> AI Powered Platform
             </div>
             <h1 className="text-4xl md:text-6xl font-black text-foreground tracking-tighter leading-tight mb-6">
@@ -109,7 +109,7 @@ const Index = () => {
                 <Button onClick={() => setIsModalOpen(true)} className="bg-primary text-primary-foreground font-bold h-14 px-8 rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all uppercase text-[11px] tracking-widest">
                 <PlusCircle className="w-5 h-5 mr-3" /> Nueva Instancia
                 </Button>
-                <Button variant="outline" className="h-14 px-8 rounded-2xl font-bold uppercase text-[11px] tracking-widest border-border/60 hover:bg-secondary">
+                <Button variant="secondary" className="h-14 px-8 rounded-2xl font-bold uppercase text-[11px] tracking-widest hover:bg-secondary shadow-sm">
                     Explorar Documentación
                 </Button>
             </div>
@@ -136,13 +136,13 @@ const Index = () => {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 group-focus-within:text-primary transition-colors" />
                 <Input 
                     placeholder="Buscar por nombre..." 
-                    className="pl-11 h-12 w-full md:w-72 bg-secondary/40 border-border/60 rounded-2xl text-foreground font-bold text-xs"
+                    className="pl-11 h-12 w-full md:w-72 bg-secondary/40 border-none rounded-2xl text-foreground font-bold text-xs shadow-inner"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
             </div>
             
-            <div className="flex items-center gap-1.5 bg-secondary/40 p-1.5 rounded-2xl border border-border/60">
+            <div className="flex items-center gap-1.5 bg-secondary/40 p-1.5 rounded-2xl shadow-inner">
                 <Button 
                     variant="ghost" 
                     size="sm" 
@@ -161,7 +161,7 @@ const Index = () => {
                 </Button>
             </div>
 
-            <div className="flex items-center gap-1.5 bg-secondary/40 p-1.5 rounded-2xl border border-border/60">
+            <div className="flex items-center gap-1.5 bg-secondary/40 p-1.5 rounded-2xl shadow-inner">
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -186,7 +186,7 @@ const Index = () => {
         <div className="pb-20">
             {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {[1, 2, 3].map(i => <div key={i} className="h-80 bg-secondary/30 animate-pulse rounded-[32px] border border-border/40" />)}
+                {[1, 2, 3].map(i => <div key={i} className="h-80 bg-secondary/30 animate-pulse rounded-[32px]" />)}
             </div>
             ) : filteredInstances.length === 0 ? (
             <div className="py-24 text-center space-y-6 bg-secondary/20 rounded-[40px] border-2 border-dashed border-border/40">
@@ -220,11 +220,11 @@ const Index = () => {
                     ) : (
                         <motion.div 
                         whileHover={{ scale: 1.01, x: 5 }}
-                        className="bg-card border border-border/50 p-6 flex items-center justify-between group relative rounded-[32px] shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+                        className="bg-card p-6 flex items-center justify-between group relative rounded-[32px] shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
                         >
                         <div className="flex items-center gap-8">
                             <div className={cn(
-                            "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500",
+                            "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-inner",
                             instance.status === 'connected' ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground/40"
                             )}>
                             {instance.status === 'connected' ? <Bot className="w-8 h-8" /> : <MessageSquare className="w-8 h-8" />}
@@ -282,7 +282,7 @@ const Index = () => {
                             </div>
 
                             <Link to={`/instances/${instance.id}`}>
-                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-2xl bg-secondary/40 border-border/60 text-muted-foreground hover:text-primary hover:bg-card transition-all">
+                            <Button variant="secondary" size="icon" className="h-12 w-12 rounded-2xl text-muted-foreground hover:text-primary hover:bg-card transition-all shadow-sm">
                                 <Settings className="w-5 h-5" />
                             </Button>
                             </Link>
@@ -293,7 +293,7 @@ const Index = () => {
                                 <MoreVertical className="w-5 h-5" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-popover border-border/60 rounded-2xl p-2 min-w-[180px] shadow-2xl">
+                            <DropdownMenuContent align="end" className="bg-popover border-none rounded-2xl p-2 min-w-[180px] shadow-2xl">
                                 <DropdownMenuItem asChild className="rounded-xl focus:bg-secondary cursor-pointer">
                                 <Link to={`/instances/${instance.id}`} className="flex items-center gap-3 p-3 text-xs font-bold text-foreground uppercase tracking-widest">
                                     <ExternalLink className="w-4 h-4 text-primary" /> Detalles
@@ -345,14 +345,14 @@ const StatCard = ({ title, value, icon: Icon, trend, color }: any) => {
       ref={cardRef}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="stat-card bg-card border border-border/50 p-10 rounded-[32px] shadow-sm hover:shadow-xl transition-all duration-500 relative overflow-hidden group cursor-default"
+      className="stat-card bg-card p-10 rounded-[32px] shadow-sm hover:shadow-xl transition-all duration-500 relative overflow-hidden group cursor-default"
     >
       <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
       <div className="flex items-center justify-between mb-8 relative z-10">
         <div className={cn("p-4 rounded-2xl bg-secondary/50", color)}>
           <Icon className="w-7 h-7" />
         </div>
-        <Badge variant="outline" className="text-[10px] font-black border-border/60 text-muted-foreground px-4 py-1.5 rounded-full bg-card shadow-sm">
+        <Badge variant="secondary" className="text-[10px] font-black text-muted-foreground px-4 py-1.5 rounded-full bg-card shadow-sm">
           {trend}
         </Badge>
       </div>

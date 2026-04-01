@@ -147,10 +147,10 @@ export const ControlChannelsList = ({ instanceId }: ControlChannelsListProps) =>
 
   return (
     <div className="space-y-6">
-      <div className="bg-card border border-border rounded-[40px] p-10 space-y-8 backdrop-blur-xl shadow-2xl">
+      <div className="bg-card border-none rounded-[40px] p-10 space-y-8 backdrop-blur-xl shadow-2xl">
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-                <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-2xl shadow-[0_0_15px_-5px_rgba(249,115,22,0.4)]">
+                <div className="p-3 bg-orange-500/10 rounded-2xl shadow-inner">
                     <ShieldCheck className="w-6 h-6 text-orange-500" />
                 </div>
                 <div>
@@ -163,7 +163,7 @@ export const ControlChannelsList = ({ instanceId }: ControlChannelsListProps) =>
                 size="sm" 
                 onClick={requestGroups}
                 disabled={loadingGroups}
-                className="h-10 px-4 rounded-xl text-primary hover:bg-primary/10 gap-2 border border-primary/10"
+                className="h-10 px-4 rounded-xl text-primary hover:bg-primary/10 gap-2 shadow-sm"
             >
                 {loadingGroups ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                 <span className="text-[10px] font-black uppercase tracking-widest">Sincronizar Grupos</span>
@@ -175,12 +175,12 @@ export const ControlChannelsList = ({ instanceId }: ControlChannelsListProps) =>
             <label className="text-[9px] font-black text-muted-foreground uppercase tracking-[3px] ml-2">Seleccionar Grupo de WhatsApp</label>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full h-14 bg-secondary/50 border-border rounded-2xl text-foreground justify-between font-bold text-xs overflow-hidden px-5 group hover:bg-secondary transition-all">
+                    <Button variant="outline" className="w-full h-14 bg-secondary/50 border-none rounded-2xl text-foreground justify-between font-bold text-xs overflow-hidden px-5 group hover:bg-secondary transition-all shadow-inner">
                         <span className="truncate uppercase tracking-tight">{newChannelJid || "Elegir un grupo..."}</span>
                         <ChevronDown className="w-4 h-4 opacity-50 shrink-0 group-hover:text-primary transition-colors" />
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-[340px] bg-popover backdrop-blur-2xl border-border rounded-[32px] shadow-2xl p-3 max-h-[400px] overflow-y-auto space-y-1">
+                <DropdownMenuContent align="start" className="w-[340px] bg-popover backdrop-blur-2xl border-none rounded-[32px] shadow-2xl p-3 max-h-[400px] overflow-y-auto space-y-1">
                     {availableGroups.length === 0 && !loadingGroups && (
                         <div className="p-8 text-center space-y-3">
                             <Users className="w-8 h-8 text-muted-foreground/30 mx-auto" />
@@ -209,7 +209,7 @@ export const ControlChannelsList = ({ instanceId }: ControlChannelsListProps) =>
               placeholder="SUCURSAL CENTRO" 
               value={newChannelName}
               onChange={(e) => setNewChannelName(e.target.value)}
-              className="h-14 bg-secondary/50 border-border rounded-2xl text-foreground font-bold text-xs uppercase tracking-widest placeholder:text-muted-foreground/30 px-5 focus:ring-primary/20 focus:border-primary/30"
+              className="h-14 bg-secondary/50 border-none rounded-2xl text-foreground font-bold text-xs uppercase tracking-widest placeholder:text-muted-foreground/30 px-5 focus:ring-primary/20 focus:border-primary/30 shadow-inner"
             />
           </div>
         </div>
@@ -231,17 +231,17 @@ export const ControlChannelsList = ({ instanceId }: ControlChannelsListProps) =>
             <Loader2 className="w-10 h-10 text-primary animate-spin opacity-50" />
           </div>
         ) : channels.length === 0 ? (
-          <div className="text-center py-20 bg-card border-2 border-dashed border-border rounded-[40px]">
+          <div className="text-center py-20 bg-card rounded-[40px] shadow-sm">
              <AlertCircle className="w-10 h-10 text-muted-foreground/20 mx-auto mb-4" />
              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[3px]">Sin canales operativos.</p>
           </div>
         ) : (
           channels.map((channel) => (
-            <div key={channel.id} className="bg-card border border-border p-6 rounded-[32px] flex items-center justify-between group relative overflow-hidden shadow-sm">
+            <div key={channel.id} className="bg-card border-none p-6 rounded-[32px] flex items-center justify-between group relative overflow-hidden shadow-sm hover:shadow-md transition-all">
               <div className="absolute inset-y-0 left-0 w-1 bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="flex items-center gap-6">
                 <div className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500",
+                  "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-inner",
                   channel.is_active ? "bg-primary/20 text-primary ai-glow" : "bg-secondary text-muted-foreground"
                 )}>
                   <Users className="w-6 h-6" />
@@ -268,7 +268,7 @@ export const ControlChannelsList = ({ instanceId }: ControlChannelsListProps) =>
                   variant="ghost" 
                   size="icon" 
                   onClick={() => deleteChannel(channel.id)}
-                  className="h-12 w-12 rounded-xl bg-secondary border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                  className="h-12 w-12 rounded-xl bg-secondary text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all shadow-sm"
                 >
                   <Trash2 className="w-5 h-5" />
                 </Button>

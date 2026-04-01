@@ -50,11 +50,11 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete, onStart }: Insta
 
   return (
     <motion.div whileHover={{ y: -5 }} transition={{ duration: 0.3 }}>
-      <Card className="rounded-[32px] border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group">
+      <Card className="rounded-[32px] border-none bg-card overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 group">
         <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-5">
             <div className={cn(
-              "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500",
+              "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-inner",
               instance.platform === 'messenger' 
                 ? "bg-[#0084FF]/10 text-[#0084FF]" 
                 : (instance.status === 'connected' ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground/40")
@@ -79,7 +79,7 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete, onStart }: Insta
                 <MoreVertical className="w-5 h-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="rounded-[20px] border-border/60 bg-popover shadow-2xl min-w-[180px] p-2">
+            <DropdownMenuContent align="end" className="rounded-[20px] border-none bg-popover shadow-2xl min-w-[180px] p-2">
               <DropdownMenuItem asChild className="rounded-xl focus:bg-secondary focus:text-foreground cursor-pointer">
                 <Link to={`/instances/${instance.id}`} className="flex items-center gap-3 p-3 text-xs font-bold uppercase tracking-widest text-foreground">
                   <ExternalLink className="w-4 h-4 text-primary" /> Detalles
@@ -96,12 +96,12 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete, onStart }: Insta
         </CardHeader>
 
         <CardContent className="px-8 py-6 space-y-8">
-           <div className="flex items-center justify-between p-4 rounded-2xl bg-secondary/40 border border-border/50 shadow-inner">
+           <div className="flex items-center justify-between p-4 rounded-2xl bg-secondary/40 shadow-inner">
               <div className="flex items-center gap-3">
                   <div className={cn("w-2 h-2 rounded-full", status.color, instance.status === 'connected' && "animate-pulse")} />
                   <span className={cn("text-[10px] font-black uppercase tracking-widest", status.text)}>{status.label}</span>
               </div>
-              <div className="flex items-center gap-3 bg-card/50 px-3 py-1.5 rounded-xl border border-border/40">
+              <div className="flex items-center gap-3 bg-card/50 px-3 py-1.5 rounded-xl">
                   <Zap className={cn("w-3.5 h-3.5", instance.bot_enabled ? "text-amber-500 fill-amber-500" : "text-muted-foreground/30")} />
                   <span className={cn("text-[10px] font-black tracking-widest", instance.bot_enabled ? "text-foreground" : "text-muted-foreground/40")}>
                       {instance.bot_enabled ? 'IA ON' : 'IA OFF'}
@@ -134,7 +134,7 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete, onStart }: Insta
         <CardFooter className="px-8 pb-8 pt-2">
           {['disconnected', 'expired'].includes(instance.status) ? (
             <Button 
-              className="w-full rounded-2xl font-black h-12 gap-3 bg-primary text-primary-foreground hover:scale-[1.02] transition-all uppercase text-[10px] tracking-widest"
+              className="w-full rounded-2xl font-black h-12 gap-3 bg-primary text-primary-foreground hover:scale-[1.02] transition-all uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20"
               onClick={() => onStart(instance.id, instance.name)}
             >
               <Power className="w-4 h-4" /> {instance.platform === 'messenger' ? 'Reconectar Webhook' : 'Iniciar Motor'}
@@ -148,8 +148,8 @@ export const InstanceCard = ({ instance, onToggleBot, onDelete, onStart }: Insta
             </Button>
           ) : (
             <Button 
-              variant="outline" 
-              className="w-full rounded-2xl font-black h-12 gap-3 border-border/60 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all uppercase text-[10px] tracking-widest"
+              variant="secondary" 
+              className="w-full rounded-2xl font-black h-12 gap-3 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all uppercase text-[10px] tracking-widest shadow-sm"
               asChild
             >
               <Link to={`/instances/${instance.id}`}>
