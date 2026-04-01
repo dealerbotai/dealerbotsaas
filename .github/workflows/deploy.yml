@@ -46,6 +46,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Run Tests (Client & Server)
+        run: |
+          pnpm --filter client test
+          pnpm --filter whatsapp-bot-server test
+
       - name: Lint and Type-check (Client)
         run: |
           pnpm --filter client lint

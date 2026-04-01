@@ -48,8 +48,15 @@ app.post('/api/import-products', async (req, res) => {
       });
     }
 
-    logger.info('DATABASE', `Importando ${products.length} productos ${storeId ? `para la tienda ${storeId}` : ''}...`);
-    const workspaceId = req.headers['x-workspace-id'] || 'default';
+    const workspaceId = req.headers['x-workspace-id'];
+    
+    if (!workspaceId || workspaceId === 'default') {
+      return res.status(400).json({ 
+        error: 'ID de espacio de trabajo inválido o ausente' 
+      });
+    }
+
+    logger.info('DATABASE', `Importando ${products.length} productos en workspace ${workspaceId}...`);
 
     let importedCount = 0;
     const errors = [];

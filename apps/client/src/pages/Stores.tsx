@@ -62,8 +62,12 @@ const Stores = () => {
 
     const [manualProduct, setManualProduct] = useState({
         name: '',
+        handle: '',
+        category: '',
         price: '',
+        stock: '0',
         description: '',
+        image_url: '',
         image_base64: ''
     });
 
@@ -107,12 +111,22 @@ const Stores = () => {
         const product = await addProductManually({
             ...manualProduct,
             price: parseFloat(manualProduct.price),
+            stock: parseInt(manualProduct.stock) || 0,
             store_id: selectedStore.id
         });
         if (product) {
             setStoreProducts(prev => [product, ...prev]);
             setIsManualProductOpen(false);
-            setManualProduct({ name: '', price: '', description: '', image_base64: '' });
+            setManualProduct({ 
+                name: '', 
+                handle: '', 
+                category: '', 
+                price: '', 
+                stock: '0', 
+                description: '', 
+                image_url: '', 
+                image_base64: '' 
+            });
         }
         setIsSubmitting(false);
     };
@@ -199,9 +213,44 @@ const Stores = () => {
                                         </DialogTitle>
                                     </DialogHeader>
                                     <form onSubmit={handleAddManualProduct} className="space-y-5 mt-6">
-                                        <Input placeholder="Nombre" className="h-12 bg-white/5 border-white/10 rounded-xl text-white" value={manualProduct.name} onChange={(e) => setManualProduct({...manualProduct, name: e.target.value})} required />
-                                        <Input type="number" step="0.01" placeholder="Precio" className="h-12 bg-white/5 border-white/10 rounded-xl text-white" value={manualProduct.price} onChange={(e) => setManualProduct({...manualProduct, price: e.target.value})} required />
-                                        <Textarea placeholder="Descripción" className="bg-white/5 border-white/10 rounded-xl text-white min-h-[100px]" value={manualProduct.description} onChange={(e) => setManualProduct({...manualProduct, description: e.target.value})} />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Nombre</Label>
+                                                <Input placeholder="Ej. Camiseta" className="h-12 bg-white/5 border-white/10 rounded-xl text-white" value={manualProduct.name} onChange={(e) => setManualProduct({...manualProduct, name: e.target.value})} required />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Handle (URL)</Label>
+                                                <Input placeholder="ej-camiseta" className="h-12 bg-white/5 border-white/10 rounded-xl text-white" value={manualProduct.handle} onChange={(e) => setManualProduct({...manualProduct, handle: e.target.value})} />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Categoría</Label>
+                                                <Input placeholder="Ropa" className="h-12 bg-white/5 border-white/10 rounded-xl text-white" value={manualProduct.category} onChange={(e) => setManualProduct({...manualProduct, category: e.target.value})} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Precio</Label>
+                                                <Input type="number" step="0.01" placeholder="0.00" className="h-12 bg-white/5 border-white/10 rounded-xl text-white" value={manualProduct.price} onChange={(e) => setManualProduct({...manualProduct, price: e.target.value})} required />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Stock</Label>
+                                                <Input type="number" placeholder="0" className="h-12 bg-white/5 border-white/10 rounded-xl text-white" value={manualProduct.stock} onChange={(e) => setManualProduct({...manualProduct, stock: e.target.value})} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Imagen URL</Label>
+                                                <Input placeholder="https://..." className="h-12 bg-white/5 border-white/10 rounded-xl text-white" value={manualProduct.image_url} onChange={(e) => setManualProduct({...manualProduct, image_url: e.target.value})} />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase text-slate-500 ml-1">Descripción</Label>
+                                            <Textarea placeholder="Descripción del producto..." className="bg-white/5 border-white/10 rounded-xl text-white min-h-[80px]" value={manualProduct.description} onChange={(e) => setManualProduct({...manualProduct, description: e.target.value})} />
+                                        </div>
+
                                         <Button disabled={isSubmitting} className="w-full h-12 bg-cyan-500 hover:bg-cyan-400 text-[#0f172a] rounded-xl font-black uppercase text-xs tracking-widest">
                                             {isSubmitting ? 'Guardando...' : 'Añadir al Catálogo'}
                                         </Button>
@@ -247,11 +296,19 @@ const Stores = () => {
                                         </div>
                                         <div className="flex-1 min-w-0 flex flex-col justify-between">
                                             <div>
-                                                <h4 className="font-black text-white truncate uppercase text-xs">{product.name}</h4>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <h4 className="font-black text-white truncate uppercase text-xs">{product.name}</h4>
+                                                    {product.category && (
+                                                        <span className="text-[8px] bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded-md font-bold border border-cyan-500/20">{product.category}</span>
+                                                    )}
+                                                </div>
                                                 <p className="text-[10px] text-slate-400 line-clamp-2 mt-1 leading-relaxed">{product.description}</p>
                                             </div>
                                             <div className="flex items-center justify-between mt-2">
-                                                <span className="text-sm font-black text-cyan-400">${product.price}</span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-black text-cyan-400">${product.price}</span>
+                                                    <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">STOCK: {product.stock || 0}</span>
+                                                </div>
                                                 <div className="flex items-center gap-1">
                                                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10" onClick={() => deleteProduct(product.id)}>
                                                         <Trash2 className="w-3.5 h-3.5" />

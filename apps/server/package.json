@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon --ignore '../../auth_info_baileys/**' --ignore '*.json' index.js",
-    "cleanup": "node cleanup.js"
+    "cleanup": "node cleanup.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@hapi/boom": "^10.0.1",
@@ -25,5 +28,9 @@
     "qrcode-terminal": "^0.12.0",
     "socket.io": "^4.7.2",
     "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.2",
+    "vitest": "^4.1.2"
   }
 }

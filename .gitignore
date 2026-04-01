@@ -200,3 +200,10 @@ GEMINI.md
 
 .gemini/
 gha-creds-*.json
+
+.dyad/
+.dyad/*
+
+AI_RULES.md
+Context.md
+GEMINI.md

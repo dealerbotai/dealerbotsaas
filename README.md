@@ -1,5 +1,9 @@
 # SalesBot - WhatsApp AI Sales Engine 🚀
 
+[![CI/CD Pipeline](https://github.com/dealerbotai/dealerbotsaas/actions/workflows/deploy.yml/badge.svg)](https://github.com/dealerbotai/dealerbotsaas/actions/workflows/deploy.yml)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![pnpm](https://img.shields.io/badge/maintained%20with-pnpm-cc00ff.svg?logo=pnpm&logoColor=white)
+
 SalesBot es una plataforma de automatización de ventas que integra la potencia de modelos de lenguaje (IA) con WhatsApp para gestionar catálogos, pedidos y atención al cliente de forma totalmente autónoma y ultrarrápida.
 
 ## 🏗️ Arquitectura (Monorepo)

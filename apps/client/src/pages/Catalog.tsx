@@ -104,19 +104,29 @@ const Catalog = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">{product.name}</h3>
-                        <p className="text-primary font-black text-xl mt-1">${product.price}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                            <p className="text-primary font-black text-xl">${product.price}</p>
+                            {product.category && (
+                                <Badge variant="outline" className="text-[9px] h-5 rounded-md border-primary/20 text-primary/70">{product.category}</Badge>
+                            )}
+                        </div>
                       </div>
                     </div>
                     
-                    <p className="text-muted-foreground text-sm font-medium line-clamp-3 h-[60px] leading-relaxed">
+                    <p className="text-muted-foreground text-sm font-medium line-clamp-2 h-[40px] leading-relaxed">
                       {product.description || 'Sin descripción disponible.'}
                     </p>
 
                     <div className="pt-4 border-t border-border/50 flex items-center justify-between">
-                      <Badge variant={product.is_active ? "default" : "secondary"} className="rounded-full px-4 font-bold">
-                        {product.is_active ? 'Disponible' : 'Inactivo'}
-                      </Badge>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                      <div className="flex items-center gap-3">
+                        <Badge variant={product.is_active ? "default" : "secondary"} className="rounded-full px-4 font-bold h-7">
+                            {product.is_active ? 'Disponible' : 'Inactivo'}
+                        </Badge>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                            STOCK: {product.stock || 0}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/50">
                         ID: {product.id.substring(0, 8)}
                       </span>
                     </div>

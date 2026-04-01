@@ -44,14 +44,19 @@ export interface AIAgent {
 export interface Product {
     id: string;
     name: string;
+    handle?: string;
+    category?: string;
     price: number;
+    stock: number;
     description: string;
+    image_url?: string;
     image_base64?: string;
     is_active: boolean;
     url?: string;
     store_id?: string;
     workspace_id: string;
     created_at: string;
+    updated_at?: string;
 }
 
 export const useWhatsApp = () => {
