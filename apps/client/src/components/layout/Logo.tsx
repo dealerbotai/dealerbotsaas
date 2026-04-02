@@ -32,14 +32,7 @@ export const Logo = ({ className, size = 'md' }: LogoProps) => {
           <img 
             src="/logodealer.png" 
             alt="Dealerbot Logo" 
-            className="w-full h-full object-contain p-1 transition-transform duration-500 group-hover:scale-110"
-            onError={(e) => {
-              // Fallback if image doesn't exist yet or has wrong extension
-              const target = e.target as HTMLImageElement;
-              if (target.src.endsWith('.png')) {
-                target.src = '/logodealer.pnh'; // Try the exact extension mentioned
-              }
-            }}
+            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
           />
         </div>
         
