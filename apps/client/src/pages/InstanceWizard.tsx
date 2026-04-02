@@ -22,6 +22,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { socket } from '@/lib/socket';
+
 const steps = [
   { id: 'platform', title: 'Plataforma', description: 'Selecciona el canal de comunicación' },
   { id: 'identity', title: 'Identidad', description: 'Define el nombre de tu instancia' },
@@ -32,7 +34,7 @@ const steps = [
 const InstanceWizard = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { instances, addInstance } = useWhatsApp();
+  const { instances, addInstance, startInstance } = useWhatsApp();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [platform, setPlatform] = useState<'whatsapp' | 'messenger' | null>(null);
@@ -49,8 +51,38 @@ const InstanceWizard = () => {
       setName(nameParam);
       setPlatform('whatsapp');
       setCurrentStep(2); // Jump directly to connection/QR
+      startInstance(id, nameParam);
     }
-  }, [searchParams]);
+  }, [searchParams, startInstance]);
+
+  // Direct socket subscription for real-time updates within the wizard
+  useEffect(() => {
+    if (!currentId) return;
+
+    // Join the specific room for this instance to receive events
+    console.log('🔌 Joining socket room for instance:', currentId);
+    socket.emit('register-instance', { instanceId: currentId });
+
+    const handleReady = (data: { instanceId: string }) => {
+      console.log('📩 Socket event [ready] received:', data);
+      if (data.instanceId === currentId) {
+        console.log('✅ Wizard detected instance ready:', currentId);
+        setCurrentStep(3); // Success step
+      }
+    };
+
+    const handleQR = (data: { instanceId: string, qr: string }) => {
+      console.log('📩 Socket event [qr] received for:', data.instanceId);
+    };
+
+    socket.on('ready', handleReady);
+    socket.on('qr', handleQR);
+    
+    return () => {
+      socket.off('ready', handleReady);
+      socket.off('qr', handleQR);
+    };
+  }, [currentId]);
 
   const activeStep = steps[currentStep];
 
