@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
 import { InstanceCard } from '@/components/whatsapp/InstanceCard';
-import { AddChannelModal } from '@/components/whatsapp/AddChannelModal';
 import { 
     Activity, 
     MessageSquare, 
@@ -19,14 +18,16 @@ import {
     MoreVertical,
     ExternalLink,
     Trash2,
-    Settings
+    Settings,
+    Globe,
+    Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { useRef } from 'react';
@@ -38,43 +39,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const Index = () => {
+  const navigate = useNavigate();
   const { instances, loading, addInstance, startInstance, toggleBot, deleteInstance } = useWhatsApp();
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [view, setView] = useState<'grid' | 'list'>('grid');
-  const [linkingInstance, setLinkingInstance] = useState<{id: string, name: string} | null>(null);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'connected' | 'disconnected'>('all');
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const heroIconRef = useRef<HTMLDivElement>(null);
-
-  useGSAP(() => {
-    // Floating animation for the hero icon
-    gsap.to(heroIconRef.current, {
-      y: 20,
-      rotation: 5,
-      duration: 3,
-      repeat: -1,
-      yoyo: true,
-      ease: "power1.inOut"
-    });
-
-    // Staggered entrance for stat cards
-    gsap.from(".stat-card", {
-      opacity: 0,
-      y: 30,
-      duration: 0.8,
-      stagger: 0.2,
-      ease: "power2.out",
-      delay: 0.5
-    });
-  }, { scope: containerRef });
 
   const handleStartInstance = (id: string, name: string) => {
-    setLinkingInstance({ id, name });
+    // We can still use a modal for simple reconnection or redirect to wizard?
+    // For now, let's keep the wizard for "New" and maybe a simplified connection view for existing.
     startInstance(id, name);
-    setIsModalOpen(true);
+    navigate(`/instances/new?id=${id}&name=${name}`);
   };
 
   const filteredInstances = instances.filter(i => {
@@ -90,27 +68,31 @@ const Index = () => {
   return (
     <MainLayout>
       <div ref={containerRef} className="max-w-[1400px] mx-auto space-y-16">
-        {/* Simplified Hero Section */}
-        <section className="relative p-12 md:p-16 rounded-[40px] overflow-hidden bg-card/30 backdrop-blur-sm shadow-sm">
-          <div ref={heroIconRef} className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
-            <Cpu className="w-80 h-80 text-primary" />
+        {/* Corporate Minimalist Hero Section */}
+        <section className="relative p-12 md:p-20 rounded-[48px] overflow-hidden bg-white border border-border/5 shadow-sm">
+          <div className="absolute top-0 right-0 p-20 opacity-[0.03] pointer-events-none">
+            <Globe className="w-96 h-96 text-primary" />
           </div>
-          <div className="relative z-10 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[2px] mb-8">
-              <Sparkles className="w-3 h-3" /> AI Powered Platform
+          <div className="relative z-10 max-w-4xl">
+            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-[3px] mb-10">
+              <Shield className="w-3.5 h-3.5" /> Enterprise Grade Infrastructure
             </div>
-            <h1 className="text-4xl md:text-6xl font-black text-foreground tracking-tighter leading-tight mb-6">
-              Gestión inteligente de <span className="text-primary italic">WhatsApp.</span>
+            <h1 className="text-5xl md:text-7xl font-black text-foreground tracking-tighter leading-[0.9] mb-8 uppercase">
+              Omnicanalidad <br />
+              <span className="text-primary italic">Empresarial.</span>
             </h1>
-            <p className="text-lg text-muted-foreground font-medium leading-relaxed mb-10 max-w-xl">
-              Automatiza tus ventas y atención al cliente con la red neuronal de Dealerbot. Conexión estable, respuestas ultra-rápidas.
+            <p className="text-xl text-muted-foreground font-medium leading-relaxed mb-12 max-w-2xl">
+              Despliega agentes de inteligencia artificial en tus canales oficiales. Control total, seguridad bancaria y escalabilidad sin límites.
             </p>
             <div className="flex flex-wrap gap-4">
-                <Button onClick={() => setIsModalOpen(true)} className="bg-primary text-primary-foreground font-bold h-14 px-8 rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all uppercase text-[11px] tracking-widest">
-                <PlusCircle className="w-5 h-5 mr-3" /> Nueva Instancia
+                <Button 
+                    onClick={() => navigate('/instances/new')} 
+                    className="bg-primary text-primary-foreground font-black h-16 px-10 rounded-2xl shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all uppercase text-[11px] tracking-widest"
+                >
+                    <PlusCircle className="w-5 h-5 mr-3" /> Configurar Nueva Instancia
                 </Button>
-                <Button variant="secondary" className="h-14 px-8 rounded-2xl font-bold uppercase text-[11px] tracking-widest hover:bg-secondary shadow-sm">
-                    Explorar Documentación
+                <Button variant="outline" className="h-16 px-10 rounded-2xl font-black border-2 uppercase text-[11px] tracking-widest hover:bg-secondary transition-colors">
+                    Ver Auditoría de Red
                 </Button>
             </div>
           </div>
@@ -317,14 +299,6 @@ const Index = () => {
             )}
         </div>
       </div>
-
-      <AddChannelModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onAdd={addInstance}
-        instances={instances}
-        initialInstance={linkingInstance}
-      />
     </MainLayout>
   );
 };

@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Settings from "./pages/Settings";
 import InstanceDetails from "./pages/InstanceDetails";
+import InstanceWizard from "./pages/InstanceWizard";
 import WhatsAppWeb from "./pages/WhatsAppWeb";
 import Analytics from "./pages/Analytics";
 import Agents from "./pages/Agents";
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/instances" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/instances/new" element={<ProtectedRoute><InstanceWizard /></ProtectedRoute>} />
               <Route path="/instances/:id" element={<ProtectedRoute><InstanceDetails /></ProtectedRoute>} />
               <Route path="/instances/:id/web" element={<ProtectedRoute><WhatsAppWeb /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />

@@ -4,34 +4,34 @@
 
 @layer base {
   :root {
-    /* ─── Kusanali Design System (Light · Warm Organic) ──────────── */
-    --background: 34 33% 91%;    /* #F5EFE6 */
-    --foreground: 165 33% 27%;   /* #2F5D50 */
+    /* ─── Dealerbot Corporate Design System (Forest Green & Sage) ──────────── */
+    --background: 210 20% 98%;   /* #F8FAFB - Very light cool gray/white */
+    --foreground: 164 86% 16%;   /* #064E3B - Forest Green */
 
-    --card: 37 64% 98%;          /* #FDFAF6 */
-    --card-foreground: 165 33% 27%;
+    --card: 0 0% 100%;           /* White */
+    --card-foreground: 164 86% 16%;
 
-    --popover: 37 64% 98%;
-    --popover-foreground: 165 33% 27%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 164 86% 16%;
 
-    --primary: 148 41% 55%;      /* #5DBB89 */
+    --primary: 164 86% 16%;      /* #064E3B - Forest Green */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 150 22% 91%;    /* #E4EDE8 */
-    --secondary-foreground: 165 33% 27%;
+    --secondary: 164 20% 95%;    /* Very light sage/gray */
+    --secondary-foreground: 164 86% 16%;
 
-    --muted: 38 34% 89%;         /* #EDE5D8 */
-    --muted-foreground: 153 14% 54%; /* #7A9A8A */
+    --muted: 164 10% 90%;
+    --muted-foreground: 164 20% 45%;
 
-    --accent: 159 35% 75%;       /* #A7D7C5 */
-    --accent-foreground: 165 33% 27%;
+    --accent: 148 41% 55%;       /* #5DBB89 - Sage Green */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 9 45% 61%;    /* #C77B6E */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 150 16% 44% / 0.08;
-    --input: 38 34% 89%;
-    --ring: 148 41% 55%;
+    --border: 164 86% 16% / 0.1;
+    --input: 164 86% 16% / 0.05;
+    --ring: 164 86% 16%;
 
     --radius: 1.125rem;
 
@@ -65,25 +65,25 @@
 
   /* No dark mode - Force light style */
   .dark {
-    --background: 34 33% 91%;
-    --foreground: 165 33% 27%;
-    --card: 37 64% 98%;
-    --card-foreground: 165 33% 27%;
-    --popover: 37 64% 98%;
-    --popover-foreground: 165 33% 27%;
-    --primary: 148 41% 55%;
+    --background: 210 20% 98%;
+    --foreground: 164 86% 16%;
+    --card: 0 0% 100%;
+    --card-foreground: 164 86% 16%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 164 86% 16%;
+    --primary: 164 86% 16%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 150 22% 91%;
-    --secondary-foreground: 165 33% 27%;
-    --muted: 38 34% 89%;
-    --muted-foreground: 153 14% 54%;
-    --accent: 159 35% 75%;
-    --accent-foreground: 165 33% 27%;
-    --destructive: 9 45% 61%;
+    --secondary: 164 20% 95%;
+    --secondary-foreground: 164 86% 16%;
+    --muted: 164 10% 90%;
+    --muted-foreground: 164 20% 45%;
+    --accent: 148 41% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 150 16% 44% / 0.08;
-    --input: 38 34% 89%;
-    --ring: 148 41% 55%;
+    --border: 164 86% 16% / 0.1;
+    --input: 164 86% 16% / 0.05;
+    --ring: 164 86% 16%;
   }
 }
 
