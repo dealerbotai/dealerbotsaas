@@ -28,12 +28,12 @@ dotenv.config({ path: envPath });
 const { id, name, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = workerData;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-let sock = null;
+let client = null;
 
 async function startWorker() {
     logger.worker(id, `Iniciando motor para ${name}...`);
     
-    const client = new WhatsAppClient(supabase, {
+    client = new WhatsAppClient(supabase, {
         instanceId: id,
         name: name,
         onEvent: async (type, data) => {
@@ -55,13 +55,13 @@ async function startWorker() {
     });
 
     try {
-        sock = await client.connect();
+        await client.connect();
     } catch (err) {
         logger.worker(id, `Error conectando motor: ${err.message}`, 'error');
         throw err;
     }
 
-    sock.ev.on('messages.upsert', async (upsert) => {
+    client.sock.ev.on('messages.upsert', async (upsert) => {
         if (upsert.type !== 'notify') return;
         
         for (const msg of upsert.messages) {
@@ -201,6 +201,7 @@ async function startWorker() {
             
             if (cmd.type === 'get-groups') {
                 try {
+                    const sock = client?.sock;
                     if (!sock || !sock.ws || sock.ws.readyState !== 1) {
                         logger.worker(id, `Solicitud de grupos fallida: Conexión no activa (ReadyState: ${sock?.ws?.readyState || 'N/A'})`, 'warn');
                         parentPort.postMessage({ type: 'groups-list', groups: [] });
