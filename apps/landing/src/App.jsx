@@ -35,7 +35,7 @@ const Landing = () => {
         </div>
 
         <button 
-          onClick={() => window.location.href = import.meta.env.VITE_DASHBOARD_URL || 'http://localhost:5173/signup'}
+          onClick={() => window.location.href = (import.meta.env.VITE_DASHBOARD_URL || 'http://localhost:8080') + '/signup'}
           className="bg-[#fcfdfa] text-[#0a261a] px-8 py-3 rounded-full font-black text-[11px] uppercase tracking-[2px] transition-all hover:bg-[#6d8c7c] hover:text-white shadow-2xl hover:scale-105 active:scale-95"
         >
           Comenzar Plan Gratis
@@ -148,7 +148,10 @@ const Landing = () => {
                   ))}
                 </div>
               </div>
-              <button className={`w-full py-5 rounded-2xl font-black text-[11px] uppercase tracking-[3px] transition-all ${plan.premium ? 'bg-[#0a261a] text-white hover:bg-black' : 'bg-white/5 hover:bg-white/10 text-white'}`}>
+              <button 
+                onClick={() => window.location.href = (import.meta.env.VITE_DASHBOARD_URL || 'http://localhost:8080') + '/signup'}
+                className={`w-full py-5 rounded-2xl font-black text-[11px] uppercase tracking-[3px] transition-all ${plan.premium ? 'bg-[#0a261a] text-white hover:bg-black' : 'bg-white/5 hover:bg-white/10 text-white'}`}
+              >
                 {plan.btn}
               </button>
             </div>
@@ -186,4 +189,3 @@ const Landing = () => {
 };
 
 export default Landing;
- default Landing;
