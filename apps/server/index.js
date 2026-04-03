@@ -80,6 +80,12 @@ const checkPlanLimits = async (req, res, next) => {
   const workspaceId = req.headers['x-workspace-id'];
   if (!workspaceId) return next();
 
+  const limits = {
+    free: { instances: 1, stores: 1, agents: 1, products: 50 },
+    starter: { instances: 3, stores: 10, agents: 5, products: 500 },
+    pro: { instances: 10, stores: 999, agents: 999, products: 10000 }
+  };
+
   try {
     const { data: workspace } = await supabase
       .from('workspaces')
@@ -87,19 +93,23 @@ const checkPlanLimits = async (req, res, next) => {
       .eq('id', workspaceId)
       .single();
 
-    if (workspace?.plan === 'free') {
-      const resourceType = req.path.split('/')[2]; 
-      
+    const currentPlan = workspace?.plan || 'free';
+    const planLimits = limits[currentPlan];
+    
+    // Identificar el recurso basándose en la ruta
+    let resourceType = req.path.split('/').pop(); 
+    if (resourceType === 'import-products') resourceType = 'products';
+    
+    if (planLimits[resourceType]) {
       const { count } = await supabase
         .from(resourceType)
         .select('*', { count: 'exact', head: true })
         .eq('workspace_id', workspaceId);
 
-      if (count && count >= 1) {
-        res.status(403).json({ 
-          error: `Límite del plan gratuito alcanzado. El plan Gratis solo permite 1 ${resourceType.slice(0,-1)}. Por favor actualiza tu plan.` 
+      if (count >= planLimits[resourceType]) {
+        return res.status(403).json({ 
+          error: `Límite del plan ${currentPlan} alcanzado (${planLimits[resourceType]} ${resourceType}). Por favor actualiza tu plan para continuar.` 
         });
-        return;
       }
     }
     next();

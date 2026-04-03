@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { socket } from '@/lib/socket';
 import { sileo as toast } from 'sileo';
+import { ACL, PlanType, PlanACL } from '@/lib/acl';
 
 export interface Store {
     id: string;
@@ -66,15 +67,9 @@ export interface Product {
 export interface Workspace {
     id: string;
     name: string;
-    plan: 'free' | 'starter' | 'pro';
+    plan: PlanType;
     subscription_status: string;
 }
-
-export const PLAN_LIMITS = {
-    free: { instances: 1, stores: 1, agents: 1 },
-    starter: { instances: 3, stores: 10, agents: 5 },
-    pro: { instances: 10, stores: 999, agents: 999 }
-};
 
 export const useWhatsApp = () => {
     const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -135,7 +130,7 @@ export const useWhatsApp = () => {
             const wsObj = {
                 id: ws.id,
                 name: ws.name,
-                plan: (ws.plan || 'free') as Workspace['plan'],
+                plan: (ws.plan || 'free') as PlanType,
                 subscription_status: ws.subscription_status
             };
             setWorkspace(wsObj);
@@ -149,13 +144,26 @@ export const useWhatsApp = () => {
         if (!workspace) return false;
         const currentCount = type === 'instances' ? instances.length : 
                            type === 'stores' ? stores.length : agents.length;
-        const limit = PLAN_LIMITS[workspace.plan][type];
+        
+        const acl = ACL[workspace.plan];
+        const limitMap: Record<string, keyof PlanACL> = {
+            instances: 'maxInstances',
+            stores: 'maxStores',
+            agents: 'maxAgents'
+        };
+        const limit = acl[limitMap[type] as keyof PlanACL] as number;
 
         if (currentCount >= limit) {
             toast.error(`Límite alcanzado (${limit} ${type}). Mejora tu plan para añadir más.`);
             return false;
         }
         return true;
+    };
+
+    const hasFeature = (feature: keyof PlanACL) => {
+        if (!workspace) return false;
+        const acl = ACL[workspace.plan];
+        return acl[feature] === true;
     };
 
     const fetchInstances = useCallback(async () => {

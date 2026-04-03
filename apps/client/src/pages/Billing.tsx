@@ -1,6 +1,7 @@
 import React from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { useWhatsApp, PLAN_LIMITS } from '@/hooks/use-whatsapp-instances';
+import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
+import { ACL } from '@/lib/acl';
 import { 
   Zap, 
   Shield, 
@@ -42,7 +43,7 @@ const UsageProgress = ({
         </div>
         <div className="text-right">
           <span className="text-sm font-black text-foreground">{current}</span>
-          <span className="text-xs text-muted-foreground font-medium ml-1">/ {limit === 999 ? '∞' : limit}</span>
+          <span className="text-xs text-muted-foreground font-medium ml-1">/ {limit >= 999 ? '∞' : limit}</span>
         </div>
       </div>
       <div className="h-2.5 w-full bg-secondary/40 rounded-full overflow-hidden p-[2px]">
@@ -74,7 +75,7 @@ export default function Billing() {
   }
 
   const currentPlan = workspace?.plan || 'free';
-  const limits = PLAN_LIMITS[currentPlan];
+  const limits = ACL[currentPlan];
 
   return (
     <MainLayout>
@@ -118,19 +119,19 @@ export default function Billing() {
                 <UsageProgress 
                   label="Instancias" 
                   current={instances.length} 
-                  limit={limits.instances} 
+                  limit={limits.maxInstances} 
                   icon={Zap} 
                 />
                 <UsageProgress 
                   label="Tiendas" 
                   current={stores.length} 
-                  limit={limits.stores} 
+                  limit={limits.maxStores} 
                   icon={Store} 
                 />
                 <UsageProgress 
                   label="Agentes" 
                   current={agents.length} 
-                  limit={limits.agents} 
+                  limit={limits.maxAgents} 
                   icon={UserCircle2} 
                 />
                 <UsageProgress 
