@@ -7,15 +7,19 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CSVImporter } from '@/components/catalog/CSVImporter';
-import { Plus } from 'lucide-react';
+import { Plus, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
 
 const Catalog = () => {
+  const { workspace } = useWhatsApp();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const canUseBulk = workspace?.plan && workspace.plan !== 'free';
 
   const fetchProducts = React.useCallback(async () => {
     try {
@@ -61,7 +65,22 @@ const Catalog = () => {
           </Button>
         </div>
 
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto relative">
+          {!canUseBulk && (
+            <div className="absolute inset-0 z-20 bg-background/60 backdrop-blur-[2px] rounded-[40px] flex flex-col items-center justify-center border-2 border-dashed border-primary/20 animate-in fade-in duration-500">
+                <div className="bg-primary/10 p-4 rounded-2xl mb-4">
+                    <Lock className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-black uppercase tracking-tight text-foreground">Función Premium</h3>
+                <p className="text-muted-foreground font-medium text-sm mt-2 mb-6">La importación masiva requiere un plan Starter o superior.</p>
+                <Button 
+                    onClick={() => window.location.href = '/billing'}
+                    className="bg-primary text-white font-black px-8 h-12 rounded-2xl shadow-xl shadow-primary/20 uppercase text-xs tracking-widest hover:scale-105 transition-all"
+                >
+                    Mejorar Plan Ahora
+                </Button>
+            </div>
+          )}
           <CSVImporter />
         </div>
 
