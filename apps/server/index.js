@@ -51,8 +51,8 @@ app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), async 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Import products endpoint
-app.post('/api/import-products', async (req, res) => {
+// Import products endpoint with plan limit check
+app.post('/api/import-products', checkPlanLimits, async (req, res) => {
   try {
     const { products, storeId } = req.body;
     

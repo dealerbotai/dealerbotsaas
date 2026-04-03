@@ -66,14 +66,14 @@ export interface Product {
 export interface Workspace {
     id: string;
     name: string;
-    plan: 'free' | 'pro' | 'enterprise';
+    plan: 'free' | 'starter' | 'pro';
     subscription_status: string;
 }
 
 export const PLAN_LIMITS = {
     free: { instances: 1, stores: 1, agents: 1 },
-    pro: { instances: 5, stores: 10, agents: 20 },
-    enterprise: { instances: 999, stores: 999, agents: 999 }
+    starter: { instances: 3, stores: 10, agents: 5 },
+    pro: { instances: 10, stores: 999, agents: 999 }
 };
 
 export const useWhatsApp = () => {

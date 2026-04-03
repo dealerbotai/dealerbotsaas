@@ -21,59 +21,60 @@ import { cn } from "@/lib/utils";
 const plans = [
   {
     name: "Gratis",
-    description: "Prueba el potencial de la IA sin costo.",
+    description: "Validación de concepto y pruebas iniciales.",
     price: 0,
     yearlyPrice: 0,
     buttonText: "Empezar Gratis",
     buttonVariant: "outline" as const,
     features: [
-      { text: "1 Instancia de WhatsApp", icon: <MessageSquare size={18} /> },
-      { text: "1 Tienda", icon: <Store size={18} /> },
+      { text: "1 Instancia WhatsApp", icon: <MessageSquare size={18} /> },
+      { text: "1 Agente de IA", icon: <Bot size={18} /> },
+      { text: "1 Tienda Virtual", icon: <Store size={18} /> },
     ],
     includes: [
-      "Respuestas automáticas simples",
-      "Soporte por comunidad",
+      "Respuestas básicas",
+      "Soporte comunitario",
     ],
   },
   {
     name: "Starter",
-    description: "Pequeños negocios que automatizan su atención.",
-    price: 49,
-    yearlyPrice: 470,
+    description: "Potencia para negocios en crecimiento.",
+    price: 125,
+    yearlyPrice: 1200,
+    priceId: "price_1TI0b9Q3SP0nKpKnfjRTvwwE",
     buttonText: "Elegir Starter",
     buttonVariant: "default" as const,
     popular: true,
-    accentColor: "bg-green-500",
+    accentColor: "bg-[#6d8c7c]",
     features: [
-      { text: "1 Instancia de WhatsApp", icon: <MessageSquare size={18} /> },
-      { text: "1 Instancia de Messenger", icon: <Zap size={18} /> },
-      { text: "2 Tiendas", icon: <Store size={18} /> },
-      { text: "4 Agentes humanos", icon: <Users size={18} /> },
+      { text: "3 Instancias WhatsApp", icon: <MessageSquare size={18} /> },
+      { text: "5 Agentes de IA", icon: <Bot size={18} /> },
+      { text: "10 Tiendas Virtuales", icon: <Store size={18} /> },
     ],
     includes: [
-      "Primera Semana Gratis",
-      "Integración CRM Básica",
+      "Analítica Avanzada",
       "Soporte por Email",
+      "Uso de Llama 3",
     ],
   },
   {
     name: "Pro",
-    description: "Empresas en crecimiento con IA avanzada.",
-    price: 149,
-    yearlyPrice: 1430,
+    description: "Infraestructura crítica empresarial.",
+    price: 217,
+    yearlyPrice: 2083,
+    priceId: "price_1TI0bCQ3SP0nKpKnBulfOYKA",
     buttonText: "Elegir Pro",
     buttonVariant: "black" as const,
     features: [
-      { text: "10 WhatsApp / 5 Messenger", icon: <MessageSquare size={18} /> },
-      { text: "10 Instagram", icon: <Sparkles size={18} /> },
+      { text: "10 Instancias WhatsApp", icon: <MessageSquare size={18} /> },
+      { text: "Agentes Ilimitados", icon: <Bot size={18} /> },
       { text: "Tiendas Ilimitadas", icon: <Store size={18} /> },
-      { text: "Agentes Ilimitados", icon: <Users size={18} /> },
     ],
     includes: [
       "Todo en Starter, más:",
-      "IA Avanzada (GPT-4 optimizado)",
-      "Soporte 24/7 Prioritario",
+      "Soporte VIP 24/7",
       "White Labeling",
+      "API de Integración Custom",
     ],
   },
 ];
@@ -128,6 +129,36 @@ const PricingSwitch = ({ onSwitch }: { onSwitch: (value: boolean) => void }) => 
 
 export default function PricingSection() {
   const [isYearly, setIsYearly] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  const handleSubscribe = async (plan: typeof plans[0]) => {
+    if (plan.price === 0) {
+        // Redirect to dashboard or just toast
+        window.location.href = "/dashboard";
+        return;
+    }
+
+    setLoadingPlan(plan.name);
+    try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/billing/create-checkout-session`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                priceId: plan.priceId,
+                successUrl: window.location.origin + '/dashboard?session_id={CHECKOUT_SESSION_ID}',
+                cancelUrl: window.location.origin + '/billing',
+                workspaceId: 'default' // This should be replaced with the actual workspace ID in a real scenario
+            })
+        });
+
+        const { url } = await response.json();
+        if (url) window.location.href = url;
+    } catch (error) {
+        console.error("Error redirecting to Stripe:", error);
+    } finally {
+        setLoadingPlan(null);
+    }
+  };
 
   return (
     <section className="py-24 px-4 bg-background font-outfit relative overflow-hidden">
@@ -220,14 +251,16 @@ export default function PricingSection() {
 
                   <div className="mt-auto pt-8">
                     <Button 
+                      onClick={() => handleSubscribe(plan)}
+                      disabled={loadingPlan !== null}
                       className={cn(
                         "w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-[2px] gap-3 transition-all group/btn shadow-md",
-                        plan.buttonVariant === "default" && plan.name === "Starter" ? "bg-green-500 hover:bg-green-600 text-white shadow-green-500/20" : 
+                        plan.buttonVariant === "default" && plan.name === "Starter" ? "bg-[#6d8c7c] hover:bg-[#5a7568] text-white shadow-[#6d8c7c]/20" : 
                         plan.buttonVariant === "default" || plan.buttonVariant === "black" ? "bg-black hover:bg-neutral-800 text-white shadow-black/20" :
                         "bg-transparent border-2 border-black text-black hover:bg-black hover:text-white"
                       )}
                     >
-                      {plan.buttonText}
+                      {loadingPlan === plan.name ? "Cargando..." : plan.buttonText}
                       <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
                     </Button>
                   </div>
