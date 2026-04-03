@@ -8,6 +8,7 @@ import { Worker } from 'worker_threads';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { logger } from './utils/logger.js';
+import { stripeService } from './services/stripe.js';
 
 dotenv.config();
 
@@ -34,6 +35,19 @@ const supabase = createClient(
 
 // Middleware
 app.use(cors());
+
+// Webhook endpoint MUST use express.raw for signature verification before JSON processing
+app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  
+  try {
+    const event = await stripeService.handleWebhook(sig, req.body);
+    res.json({received: true, type: event.type});
+  } catch (err) {
+    res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+});
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -131,6 +145,59 @@ app.post('/api/import-products', async (req, res) => {
     });
   }
 });
+
+// Billing Endpoints
+app.post('/api/billing/create-checkout-session', async (req, res) => {
+  try {
+    const { workspaceId, priceId, successUrl, cancelUrl } = req.body;
+    const session = await stripeService.createCheckoutSession(workspaceId, priceId, successUrl, cancelUrl);
+    res.json({ id: session.id, url: session.url });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/billing/create-portal-session', async (req, res) => {
+  try {
+    const { workspaceId, returnUrl } = req.body;
+    const session = await stripeService.createPortalSession(workspaceId, returnUrl);
+    res.json({ url: session.url });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Plan Usage Validation Middleware
+const checkPlanLimits = async (req, res, next) => {
+  const workspaceId = req.headers['x-workspace-id'];
+  if (!workspaceId) return next();
+
+  try {
+    const { data: workspace } = await supabase
+      .from('workspaces')
+      .select('plan')
+      .eq('id', workspaceId)
+      .single();
+
+    if (workspace?.plan === 'free') {
+      const resourceType = req.path.split('/')[2]; // e.g., 'instances', 'agents', 'stores'
+      
+      const { count } = await supabase
+        .from(resourceType)
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId);
+
+      if (count >= 1) {
+        return res.status(403).json({ 
+          error: `Límite del plan gratuito alcanzado. El plan Gratis solo permite 1 ${resourceType.slice(0,-1)}. Por favor actualiza tu plan.` 
+        });
+      }
+    }
+    next();
+  } catch (error) {
+    next();
+  }
+};
 
 // Health check endpoint
 app.get('/health', (req, res) => {
