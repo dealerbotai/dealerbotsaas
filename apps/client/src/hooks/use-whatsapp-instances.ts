@@ -160,10 +160,24 @@ export const useWhatsApp = () => {
 
     const fetchInstances = useCallback(async () => {
         try {
-            const { data, error } = await supabase
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data: member } = await supabase
+                .from('workspace_members')
+                .select('workspace_id')
+                .eq('user_id', user.id)
+                .single();
+
+            const query = supabase
                 .from('instances')
-                .select('*, agent:agents(*), store:stores(*)')
-                .order('created_at', { ascending: false });
+                .select('*, agent:agents(*), store:stores(*)');
+            
+            if (member) {
+                query.eq('workspace_id', member.workspace_id);
+            }
+
+            const { data, error } = await query.order('created_at', { ascending: false });
 
             if (error) throw error;
             setInstances(data || []);
@@ -269,11 +283,20 @@ export const useWhatsApp = () => {
     useEffect(() => {
         const init = async () => {
             setLoading(true);
-            await Promise.all([fetchWorkspace(), fetchInstances(), fetchSettings(), fetchAgents(), fetchStores(), fetchUsage()]);
+            const ws = await fetchWorkspace();
+            if (ws) {
+                await Promise.all([
+                    fetchInstances(), 
+                    fetchSettings(), 
+                    fetchAgents(), 
+                    fetchStores(), 
+                    fetchUsage()
+                ]);
+            }
             setLoading(false);
         };
         init();
-    }, []);
+    }, [fetchWorkspace, fetchInstances, fetchSettings, fetchAgents, fetchStores, fetchUsage]);
 
     const addStore = async (name: string) => {
         try {
@@ -343,6 +366,24 @@ export const useWhatsApp = () => {
             return data;
         } catch (error: any) {
             toast.error('Error al crear agente: ' + error.message);
+        }
+    };
+
+    const updateAgent = async (id: string, name: string, promptText: string) => {
+        try {
+            const { data, error } = await supabase
+                .from('agents')
+                .update({ name, prompt_text: promptText })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            setAgents(prev => prev.map(a => a.id === id ? data : a));
+            toast.success('Agente actualizado correctamente');
+            return data;
+        } catch (error: any) {
+            toast.error('Error al actualizar agente: ' + error.message);
         }
     };
 
@@ -417,6 +458,24 @@ export const useWhatsApp = () => {
         setInstances(prev => prev.map(inst => inst.id === id ? { ...inst, status: 'initializing' } : inst));
         toast.info(`Iniciando motor para "${name}"...`);
     }, []);
+
+    const resetInstance = useCallback(async (id: string, name: string) => {
+        try {
+            // Detener primero si es necesario
+            socket.emit('stop-instance', { instanceId: id });
+            // Limpiar estado en DB antes de arrancar
+            const { error } = await supabase.from('whatsapp_auth_states').delete().eq('instance_id', id);
+            if (error) throw error;
+            
+            // Forzar estado desconectado localmente para que el worker sepa que debe resetear
+            await supabase.from('instances').update({ status: 'disconnected' }).eq('id', id);
+            
+            startInstance(id, name);
+            toast.success(`Sesión reiniciada para "${name}". Esperando nuevo QR...`);
+        } catch (error: any) {
+            toast.error('Error al reiniciar: ' + error.message);
+        }
+    }, [startInstance]);
 
     const toggleBot = async (id: string, enabled: boolean) => {
         try {
@@ -498,10 +557,12 @@ export const useWhatsApp = () => {
         scraping: false,
         addInstance,
         startInstance,
+        resetInstance,
         toggleBot,
         deleteInstance,
         updateSettings,
         addAgent,
+        updateAgent,
         deleteAgent,
         assignAgent,
         addStore,

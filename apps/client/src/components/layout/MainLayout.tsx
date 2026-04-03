@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Sidebar } from './Sidebar';
+import { NotificationBell } from './NotificationBell';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -21,46 +22,45 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       {!isMobile && <Sidebar />}
 
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-        {/* Modern Header */}
-        <header className="h-20 bg-background/60 backdrop-blur-xl flex items-center justify-between px-8 md:px-12 sticky top-0 z-50">
-          <div className="flex items-center gap-6">
+        {/* Compact Modern Header */}
+        <header className="h-14 bg-background/60 backdrop-blur-xl flex items-center justify-between px-6 md:px-10 sticky top-0 z-50">
+          <div className="flex items-center gap-4">
              {isMobile && (
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-xl hover:bg-secondary">
-                    <Menu className="w-5 h-5 text-muted-foreground" />
+                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-secondary">
+                    <Menu className="w-4 h-4 text-muted-foreground" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-[280px] border-r-0 bg-background">
-                  <Sidebar />
+                  <Sidebar isMobile />
                 </SheetContent>
               </Sheet>
             )}
             <div className="hidden sm:flex items-center gap-3 relative group">
-              <Search className="w-4 h-4 text-muted-foreground/50 absolute left-4 transition-colors group-focus-within:text-primary" />
+              <Search className="w-3.5 h-3.5 text-muted-foreground/40 absolute left-3.5 transition-colors group-focus-within:text-primary" />
               <input 
                 type="text" 
-                placeholder="Buscar recursos..." 
-                className="bg-secondary/40 rounded-2xl pl-11 pr-6 py-2.5 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 w-64 lg:w-80 transition-all duration-500 placeholder:text-muted-foreground/40"
+                placeholder="Comando rápido (⌘K)" 
+                className="bg-secondary/30 rounded-xl pl-10 pr-4 py-1.5 text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/10 w-48 lg:w-64 transition-all duration-300 placeholder:text-muted-foreground/30 border border-transparent focus:border-primary/20"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-5">
-            <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-muted-foreground hover:bg-secondary transition-all relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-3.5 right-3.5 w-2 h-2 bg-destructive rounded-full border-2 border-background shadow-sm" />
-            </Button>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
             
-            <Button className="bg-primary text-primary-foreground font-bold text-[11px] h-11 px-6 rounded-2xl shadow-xl shadow-primary/10 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[1px] flex gap-2">
-               <PlusCircle className="w-4 h-4" /> <span className="hidden md:inline">Nueva Instancia</span>
+            <div className="h-4 w-[1px] bg-border/10 mx-1" />
+
+            <Button onClick={() => window.location.href = '/instances/new'} className="bg-primary text-primary-foreground font-black text-[9px] h-9 px-4 rounded-xl shadow-lg shadow-primary/5 hover:opacity-90 transition-all uppercase tracking-[1px] flex gap-2">
+               <PlusCircle className="w-3.5 h-3.5" /> <span className="hidden md:inline text-[8px]">Nueva Instancia</span>
             </Button>
           </div>
         </header>
 
-        {/* Spacious Main Content */}
-        <main className="flex-1 p-8 md:p-12 lg:p-16 max-w-[1600px] mx-auto w-full transition-all duration-500">
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
+        {/* Dense Main Content */}
+        <main className="flex-1 p-6 md:p-8 lg:p-10 max-w-[1600px] mx-auto w-full">
+          <div className="animate-in fade-in slide-in-from-bottom-1 duration-500">
             {children}
           </div>
         </main>

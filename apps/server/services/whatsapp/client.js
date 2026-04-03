@@ -26,9 +26,18 @@ class WhatsAppClient {
         this.sock = null;
     }
 
-    async connect() {
+    async connect(forceReset = false) {
         // Usar la nueva persistencia en Supabase
-        const { state, saveCreds } = await useSupabaseAuthState(this.supabase, this.instanceId);
+        const { state, saveCreds, clearAuthState } = await useSupabaseAuthState(this.supabase, this.instanceId);
+        
+        if (forceReset) {
+            logger.info('WHATSAPP', `Forzando reinicio de sesión para ${this.name}...`);
+            await clearAuthState();
+            // Re-obtener estado después de limpiar
+            return this.connect(false); 
+        }
+
+        this.clearAuthState = clearAuthState;
         const { version, isLatest } = await fetchLatestBaileysVersion();
         
         logger.info('WHATSAPP', `Iniciando instancia "${this.name}" con persistencia en Supabase`);

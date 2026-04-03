@@ -23,48 +23,48 @@ const Dashboard = () => {
 
   return (
     <MainLayout>
-      <div className="space-y-12">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="space-y-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-black tracking-tight uppercase">Panel de Control</h1>
-            <p className="text-muted-foreground font-medium mt-1">Supervisión en tiempo real de tu infraestructura IA.</p>
+            <h1 className="text-3xl font-black tracking-tight uppercase">Dashboard</h1>
+            <p className="text-xs text-muted-foreground font-medium">Infraestructura IA en tiempo real.</p>
           </div>
           <Button 
             onClick={() => navigate('/instances/new')} 
-            className="rounded-2xl h-14 px-8 font-black gap-3 shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all uppercase text-[10px] tracking-widest"
+            className="rounded-xl h-10 px-6 font-black gap-2 shadow-lg shadow-primary/5 hover:opacity-90 transition-all uppercase text-[9px] tracking-widest"
           >
-            <Plus className="w-5 h-5" /> Nueva Instancia
+            <Plus className="w-4 h-4" /> Nueva Instancia
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, idx) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              className="bg-card p-8 rounded-[32px] shadow-sm border border-border/5"
+              transition={{ delay: idx * 0.05 }}
+              className="bg-card p-5 rounded-[24px] shadow-sm border border-border/5"
             >
-              <div className="flex flex-col gap-6">
-                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", stat.bg)}>
-                  <stat.icon className={cn("w-6 h-6", stat.color)} />
+              <div className="flex items-center gap-4">
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", stat.bg)}>
+                  <stat.icon className={cn("w-5 h-5", stat.color)} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[2px] mb-1">{stat.label}</p>
-                  <p className="text-3xl font-black text-foreground">{stat.value}</p>
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">{stat.label}</p>
+                  <p className="text-xl font-black text-foreground">{stat.value}</p>
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-black tracking-tight uppercase">Tus Canales</h2>
-            <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-emerald-500/5 text-emerald-600 text-[10px] font-black uppercase tracking-widest">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              {instances.filter(i => i.status === 'connected').length} En línea
+            <h2 className="text-xl font-black tracking-tight uppercase">Canales Activos</h2>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/5 text-emerald-600 text-[9px] font-black uppercase tracking-widest">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {instances.filter(i => i.status === 'connected').length} Online
             </div>
           </div>
 

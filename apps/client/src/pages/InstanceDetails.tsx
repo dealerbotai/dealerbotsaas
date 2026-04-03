@@ -23,7 +23,8 @@ import {
   Settings,
   Cpu,
   Globe,
-  Layout
+  Layout,
+  RefreshCw
 } from 'lucide-react';
 import { 
   Select,
@@ -269,11 +270,33 @@ const InstanceDetails = () => {
                                                 ? "bg-secondary text-muted-foreground hover:bg-accent"
                                                 : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20"
                                         )}
-                                        onClick={() => { startInstance(instance.id, instance.name); if (['disconnected', 'expired', 'qr_ready'].includes(instance.status)) setIsModalOpen(true); }}
+                                        onClick={() => { 
+                                            if (['disconnected', 'expired', 'qr_ready'].includes(instance.status)) {
+                                                setIsModalOpen(true);
+                                                startInstance(instance.id, instance.name); 
+                                            } else {
+                                                startInstance(instance.id, instance.name);
+                                            }
+                                        }}
                                     >
                                         {instance.status === 'connected' ? <History className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
                                         {instance.status === 'connected' ? 'Reiniciar Motor' : (instance.platform === 'messenger' ? 'Vincular Messenger' : 'Vincular WhatsApp')}
                                     </Button>
+
+                                    {instance.status !== 'connected' && instance.platform === 'whatsapp' && (
+                                        <Button 
+                                            variant="ghost"
+                                            className="w-full h-10 rounded-xl font-bold text-[9px] uppercase tracking-widest text-muted-foreground hover:text-primary transition-all gap-2"
+                                            onClick={() => {
+                                                if (confirm('¿Quieres forzar un nuevo código QR? Esto cerrará cualquier sesión previa.')) {
+                                                    resetInstance(instance.id, instance.name);
+                                                    setIsModalOpen(true);
+                                                }
+                                            }}
+                                        >
+                                            <RefreshCw className="w-3.5 h-3.5" /> Forzar Nuevo QR
+                                        </Button>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>

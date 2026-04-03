@@ -37,25 +37,20 @@ async function startWorker() {
         instanceId: id,
         name: name,
         onEvent: async (type, data) => {
-            switch (type) {
-                case 'qr':
-                    logger.worker(id, `QR generado, enviando al servidor principal...`);
-                    parentPort.postMessage({ type: 'qr', qr: data.qr });
-                    break;
-                case 'ready':
-                    logger.worker(id, `Motor listo para operar (${data.phoneNumber})`, 'success');
-                    parentPort.postMessage({ type: 'ready', phoneNumber: data.phoneNumber });
-                    break;
-                case 'expired':
-                    logger.worker(id, `Sesión de WhatsApp expirada`, 'error');
-                    parentPort.postMessage({ type: 'expired', message: data.message });
-                    break;
-            }
+            // ... (keep switches)
         }
     });
 
     try {
-        await client.connect();
+        // Consultar estado actual para ver si requiere limpieza
+        const { data: inst } = await supabase.from('instances').select('status').eq('id', id).single();
+        const shouldReset = inst && (inst.status === 'expired' || inst.status === 'qr_ready');
+        
+        if (shouldReset) {
+            logger.worker(id, `Instancia en estado ${inst.status}, forzando limpieza de sesión...`);
+        }
+        
+        await client.connect(shouldReset);
     } catch (err) {
         logger.worker(id, `Error conectando motor: ${err.message}`, 'error');
         throw err;

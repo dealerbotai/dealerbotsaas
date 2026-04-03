@@ -1,4 +1,5 @@
 import { BufferJSON, proto, initAuthCreds } from '@whiskeysockets/baileys';
+import { logger } from '../../utils/logger.js';
 
 /**
  * Custom Auth State para Baileys usando Supabase (Stateless Persistence)
@@ -57,6 +58,20 @@ export const useSupabaseAuthState = async (supabase, instanceId) => {
         }
     };
 
+    const clearAuthState = async () => {
+        try {
+            const { error } = await supabase
+                .from('whatsapp_auth_states')
+                .delete()
+                .eq('instance_id', instanceId);
+            
+            if (error) throw error;
+            logger.info('AUTH', `Estado de autenticación limpiado para instancia ${instanceId}`);
+        } catch (error) {
+            console.error(`[AUTH] Error limpiando estado total:`, error.message);
+        }
+    };
+
     // Cargar credenciales base o inicializar nuevas
     const creds = await readData('creds', 'initial-creds') || initAuthCreds();
 
@@ -93,6 +108,7 @@ export const useSupabaseAuthState = async (supabase, instanceId) => {
                 }
             }
         },
-        saveCreds: () => writeData(creds, 'creds', 'initial-creds')
+        saveCreds: () => writeData(creds, 'creds', 'initial-creds'),
+        clearAuthState
     };
 };

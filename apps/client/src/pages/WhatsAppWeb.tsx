@@ -18,7 +18,12 @@ import {
   Filter,
   CircleDashed,
   Plus,
-  Shield
+  Shield,
+  Users,
+  Info,
+  Power,
+  Zap,
+  Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +31,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useWhatsApp } from '@/hooks/use-whatsapp-instances';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { sileo as toast } from 'sileo';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Chat {
   id: string;
@@ -33,6 +41,12 @@ interface Chat {
   customer_name: string;
   last_message_at: string;
   last_message_content?: string;
+  is_group?: boolean;
+}
+
+interface WhatsAppGroup {
+    id: string;
+    subject: string;
 }
 
 interface Message {
@@ -45,30 +59,20 @@ interface Message {
   created_at: string;
 }
 
-// WhatsApp Official-like Colors
-const WA_COLORS = {
-  header: '#f0f2f5',
-  sidebar: '#ffffff',
-  chatBg: '#efeae2',
-  chatBgDark: '#0b141a',
-  myBubble: '#d9fdd3',
-  myBubbleDark: '#005c4b',
-  theirBubble: '#ffffff',
-  theirBubbleDark: '#202c33',
-  primary: '#00a884',
-};
-
 const WhatsAppWeb = () => {
   const { id: instanceId } = useParams();
   const { instances } = useWhatsApp();
   const instance = instances.find(i => i.id === instanceId);
+  
   const [chats, setChats] = useState<Chat[]>([]);
+  const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [loadingChats, setLoadingChats] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'chats' | 'groups'>('chats');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch chats for this instance
@@ -83,12 +87,22 @@ const WhatsAppWeb = () => {
         .order('last_message_at', { ascending: false });
 
       if (error) console.error('Error fetching chats:', error.message);
-      else setChats(data || []);
+      else setChats((data || []).map(c => ({ ...c, is_group: c.external_id.includes('@g.us') })));
       setLoadingChats(false);
     };
 
     fetchChats();
   }, [instanceId]);
+
+  // Request groups from worker
+  const syncGroups = () => {
+      if (!instanceId || instance?.status !== 'connected') {
+          toast.error("El motor debe estar conectado para sincronizar grupos.");
+          return;
+      }
+      toast.info("Sincronizando grupos desde WhatsApp...");
+      socket.emit('request-groups', { instanceId });
+  };
 
   // Fetch messages for selected chat
   useEffect(() => {
@@ -109,51 +123,62 @@ const WhatsAppWeb = () => {
     fetchMessages();
   }, [selectedChat]);
 
-  // Listen for real-time messages
+  // Listen for real-time updates
   useEffect(() => {
     const handleUpdate = (data: any) => {
         if (data.instanceId !== instanceId) return;
         
-        // If it's a message for the current selected chat, add it
-        if (selectedChat && data.message.chat_id === selectedChat.id) {
-            const newMsg: Message = {
-                id: Math.random().toString(),
-                chat_id: data.message.chat_id,
-                sender_name: data.message.pushname,
-                content: data.message.body,
-                from_me: false,
-                type: 'text',
-                created_at: new Date().toISOString()
-            };
-            setMessages(prev => [...prev, newMsg]);
-        }
-        
-        // Update chats list
-        setChats(prev => {
-            const existing = prev.find(c => c.external_id === data.message.from);
-            if (existing) {
-                return [
-                    { ...existing, last_message_at: new Date().toISOString(), last_message_content: data.message.body },
-                    ...prev.filter(c => c.external_id !== data.message.from)
-                ];
-            } else {
-                return [
-                    {
-                        id: data.message.chat_id,
-                        external_id: data.message.from,
-                        customer_name: data.message.pushname,
-                        last_message_at: new Date().toISOString(),
-                        last_message_content: data.message.body
-                    },
-                    ...prev
-                ];
+        if (data.type === 'message-update') {
+            // If it's a message for the current selected chat, add it
+            if (selectedChat && data.message.chat_id === selectedChat.id) {
+                const newMsg: Message = {
+                    id: Math.random().toString(),
+                    chat_id: data.message.chat_id,
+                    sender_name: data.message.pushname,
+                    content: data.message.body,
+                    from_me: data.message.from_me || false,
+                    type: 'text',
+                    created_at: new Date().toISOString()
+                };
+                setMessages(prev => [...prev, newMsg]);
             }
-        });
+            
+            // Update chats list
+            setChats(prev => {
+                const existing = prev.find(c => c.external_id === data.message.from);
+                if (existing) {
+                    return [
+                        { ...existing, last_message_at: new Date().toISOString(), last_message_content: data.message.body },
+                        ...prev.filter(c => c.external_id !== data.message.from)
+                    ];
+                } else {
+                    return [
+                        {
+                            id: data.message.chat_id,
+                            external_id: data.message.from,
+                            customer_name: data.message.pushname,
+                            last_message_at: new Date().toISOString(),
+                            last_message_content: data.message.body,
+                            is_group: data.message.from.includes('@g.us')
+                        },
+                        ...prev
+                    ];
+                }
+            });
+        }
+
+        if (data.type === 'groups-list') {
+            setGroups(data.groups || []);
+            toast.success(`${data.groups?.length || 0} grupos sincronizados.`);
+        }
     };
 
-    socket.on('message-update', handleUpdate);
+    socket.on('message-update', (d) => handleUpdate({ ...d, type: 'message-update' }));
+    socket.on('groups-list', (d) => handleUpdate({ ...d, type: 'groups-list' }));
+    
     return () => {
-        socket.off('message-update', handleUpdate);
+        socket.off('message-update');
+        socket.off('groups-list');
     };
   }, [instanceId, selectedChat]);
 
@@ -195,37 +220,83 @@ const WhatsAppWeb = () => {
       setMessages(prev => [...prev, optimisticMsg]);
   };
 
-  const filteredChats = chats.filter(chat => 
-    chat.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chat.external_id.includes(searchQuery)
-  );
+  const handleSelectGroup = async (group: WhatsAppGroup) => {
+      setLoadingMessages(true);
+      // Ensure chat exists in DB for this group
+      const { data: chat, error } = await supabase
+          .from('chats')
+          .upsert({
+              instance_id: instanceId,
+              external_id: group.id,
+              customer_name: group.subject,
+              last_message_at: new Date().toISOString()
+          }, { onConflict: 'instance_id,external_id' })
+          .select()
+          .single();
+
+      if (error) {
+          toast.error("Error al acceder al grupo: " + error.message);
+          setLoadingMessages(false);
+          return;
+      }
+
+      const selected = { ...chat, is_group: true };
+      setSelectedChat(selected);
+      setActiveTab('chats');
+      
+      // If not in chats list, add it
+      if (!chats.find(c => c.id === chat.id)) {
+          setChats(prev => [selected, ...prev]);
+      }
+  };
+
+  const filteredItems = activeTab === 'chats' 
+    ? chats.filter(chat => 
+        chat.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        chat.external_id.includes(searchQuery)
+      )
+    : groups.filter(group => 
+        group.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        group.id.includes(searchQuery)
+      );
 
   return (
     <MainLayout>
-      <div className="flex flex-col h-[calc(100vh-100px)] -mt-4 -mx-4 overflow-hidden bg-[#f0f2f5] dark:bg-[#0b141a]">
-         {/* Container for the "App" with WhatsApp Web dimensions/style */}
+      <div className="flex flex-col h-[calc(100vh-100px)] -mt-4 -mx-4 overflow-hidden bg-[#f0f2f5] dark:bg-[#0b141a] font-outfit">
          <div className="flex-1 flex overflow-hidden shadow-sm">
             
             {/* Left Sidebar */}
-            <div className="w-[400px] flex flex-col bg-white dark:bg-[#111b21] shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10">
+            <div className="w-[400px] flex flex-col bg-white dark:bg-[#111b21] shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 border-r border-border/5">
                 {/* User Header */}
-                <div className="h-[60px] px-4 flex items-center justify-between bg-[#f0f2f5] dark:bg-[#202c33]">
+                <div className="h-[64px] px-4 flex items-center justify-between bg-[#f0f2f5] dark:bg-[#202c33]">
                     <div className="flex items-center gap-3">
                         <Link to={`/instances/${instanceId}`}>
                             <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/5 dark:hover:bg-white/5">
                                 <ArrowLeft className="w-5 h-5" />
                             </Button>
                         </Link>
-                        <Avatar className="w-10 h-10">
-                            <AvatarFallback className="bg-muted"><User className="w-6 h-6 text-muted-foreground" /></AvatarFallback>
-                        </Avatar>
+                        <div className="relative">
+                            <Avatar className="w-10 h-10 border-2 border-white dark:border-[#202c33]">
+                                <AvatarFallback className="bg-primary/10 text-primary font-bold">{instance?.name?.[0] || 'W'}</AvatarFallback>
+                            </Avatar>
+                            {instance?.status === 'connected' && (
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-[#202c33]" />
+                            )}
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                        <TooltipProvider delayDuration={0}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button onClick={syncGroups} variant="ghost" size="icon" className="rounded-full text-[#54656f] dark:text-[#aebac1]">
+                                        <Users className="w-5 h-5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-primary text-white font-bold border-none text-[10px] uppercase tracking-widest">Sincronizar Grupos</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                         <Button variant="ghost" size="icon" className="rounded-full text-[#54656f] dark:text-[#aebac1]">
                             <CircleDashed className="w-5 h-5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="rounded-full text-[#54656f] dark:text-[#aebac1]">
-                            <MessageSquare className="w-5 h-5" />
                         </Button>
                         <Button variant="ghost" size="icon" className="rounded-full text-[#54656f] dark:text-[#aebac1]">
                             <MoreVertical className="w-5 h-5" />
@@ -233,22 +304,37 @@ const WhatsAppWeb = () => {
                     </div>
                 </div>
 
+                {/* Tabs Area */}
+                <div className="px-4 py-2 flex items-center gap-2 border-b border-border/5">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setActiveTab('chats')}
+                        className={cn("flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest h-9", activeTab === 'chats' ? "bg-primary/5 text-primary" : "text-muted-foreground")}
+                    >
+                        Conversaciones
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setActiveTab('groups')}
+                        className={cn("flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest h-9", activeTab === 'groups' ? "bg-primary/5 text-primary" : "text-muted-foreground")}
+                    >
+                        Grupos WhatsApp
+                    </Button>
+                </div>
+
                 {/* Search & Filter */}
-                <div className="p-2 flex items-center gap-2">
-                    <div className="flex-1 relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                            <Search className="w-4 h-4 text-[#54656f] dark:text-[#aebac1]" />
-                        </div>
+                <div className="p-3">
+                    <div className="relative group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
                         <Input 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Buscar un chat o iniciar uno nuevo" 
-                            className="pl-12 h-9 bg-[#f0f2f5] dark:bg-[#202c33] border-none rounded-lg text-sm focus-visible:ring-0 placeholder:text-[#54656f] dark:placeholder:text-[#aebac1]"
+                            placeholder={activeTab === 'chats' ? "Buscar chat..." : "Buscar grupo..."} 
+                            className="pl-11 h-10 bg-secondary/40 border-none rounded-xl text-xs font-bold shadow-inner placeholder:text-muted-foreground/30 focus-visible:ring-1 focus-visible:ring-primary/20"
                         />
                     </div>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-[#54656f] dark:text-[#aebac1]">
-                        <Filter className="w-4 h-4" />
-                    </Button>
                 </div>
 
                 {/* Chat List */}
@@ -256,46 +342,61 @@ const WhatsAppWeb = () => {
                     <div className="flex flex-col">
                         {loadingChats ? (
                             Array(8).fill(0).map((_, i) => (
-                                <div key={i} className="flex items-center gap-3 p-3">
-                                    <div className="w-12 h-12 bg-muted rounded-full animate-pulse" />
+                                <div key={i} className="flex items-center gap-4 p-4" i={i}>
+                                    <div className="w-12 h-12 bg-secondary rounded-full animate-pulse" />
                                     <div className="flex-1 space-y-2">
-                                        <div className="h-4 bg-muted rounded w-1/3 animate-pulse" />
-                                        <div className="h-3 bg-muted rounded w-2/3 animate-pulse" />
+                                        <div className="h-4 w-1/3 bg-secondary rounded animate-pulse" />
+                                        <div className="h-3 w-2/3 bg-secondary rounded animate-pulse" />
                                     </div>
                                 </div>
                             ))
-                        ) : filteredChats.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-20 px-10 text-center text-[#667781] dark:text-[#8696a0]">
-                                <p className="text-sm">No se encontraron chats.</p>
+                        ) : filteredItems.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-24 px-10 text-center space-y-4">
+                                <div className="p-4 bg-secondary/30 rounded-full">
+                                    <MessageSquare className="w-8 h-8 text-muted-foreground/20" />
+                                </div>
+                                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
+                                    {activeTab === 'chats' ? "Sin conversaciones activas" : "No hay grupos sincronizados"}
+                                </p>
+                                {activeTab === 'groups' && (
+                                    <Button onClick={syncGroups} variant="outline" size="sm" className="rounded-xl font-bold text-[10px] uppercase tracking-widest">
+                                        Sincronizar Ahora
+                                    </Button>
+                                )}
                             </div>
                         ) : (
-                            filteredChats.map((chat) => (
+                            filteredItems.map((item: any) => (
                                 <button
-                                    key={chat.id}
-                                    onClick={() => setSelectedChat(chat)}
+                                    key={item.id}
+                                    onClick={() => activeTab === 'chats' ? setSelectedChat(item) : handleSelectGroup(item)}
                                     className={cn(
-                                        "w-full flex items-center gap-3 px-3 py-3 transition-colors",
-                                        selectedChat?.id === chat.id 
-                                            ? "bg-[#f0f2f5] dark:bg-[#2a3942]" 
-                                            : "hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]"
+                                        "w-full flex items-center gap-4 px-4 py-4 transition-all duration-300 relative group",
+                                        selectedChat?.id === item.id 
+                                            ? "bg-primary/5 dark:bg-[#2a3942]" 
+                                            : "hover:bg-secondary/30 dark:hover:bg-[#202c33]"
                                     )}
                                 >
-                                    <Avatar className="w-12 h-12">
-                                        <AvatarFallback className="bg-[#dfe5e7] dark:bg-[#6a7175]">
-                                            <User className="w-7 h-7 text-white" />
+                                    {selectedChat?.id === item.id && (
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-primary rounded-r-full shadow-lg" />
+                                    )}
+                                    <Avatar className="w-12 h-12 shadow-sm">
+                                        <AvatarFallback className={cn("text-white font-bold", item.is_group || activeTab === 'groups' ? "bg-indigo-500" : "bg-emerald-500")}>
+                                            {item.is_group || activeTab === 'groups' ? <Users className="w-6 h-6" /> : <User className="w-6 h-6" />}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 min-w-0 text-left">
                                         <div className="flex items-center justify-between gap-2">
-                                            <h3 className="text-[16px] font-normal text-[#111b21] dark:text-[#e9edef] truncate">
-                                                {chat.customer_name}
+                                            <h3 className="text-sm font-bold text-foreground truncate tracking-tight">
+                                                {activeTab === 'chats' ? item.customer_name : item.subject}
                                             </h3>
-                                            <span className="text-[12px] text-[#667781] dark:text-[#8696a0] shrink-0">
-                                                {new Date(chat.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
+                                            {activeTab === 'chats' && item.last_message_at && (
+                                                <span className="text-[10px] font-bold text-muted-foreground/60 shrink-0">
+                                                    {new Date(item.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
                                         </div>
-                                        <p className="text-sm text-[#667781] dark:text-[#8696a0] truncate mt-0.5">
-                                            {chat.last_message_content || chat.external_id}
+                                        <p className="text-[11px] text-muted-foreground font-medium truncate mt-1">
+                                            {activeTab === 'chats' ? (item.last_message_content || item.external_id) : item.id}
                                         </p>
                                     </div>
                                 </button>
@@ -310,37 +411,57 @@ const WhatsAppWeb = () => {
                 {selectedChat ? (
                     <>
                         {/* Chat Header */}
-                        <div className="h-[60px] px-4 flex items-center justify-between bg-[#f0f2f5] dark:bg-[#202c33] z-10 shadow-sm">
-                            <div className="flex items-center gap-3">
-                                <Avatar className="w-10 h-10 cursor-pointer">
-                                    <AvatarFallback className="bg-[#dfe5e7] dark:bg-[#6a7175]">
-                                        <User className="w-6 h-6 text-white" />
+                        <div className="h-[64px] px-6 flex items-center justify-between bg-white dark:bg-[#202c33] z-10 shadow-sm border-b border-border/5">
+                            <div className="flex items-center gap-4">
+                                <Avatar className="w-10 h-10">
+                                    <AvatarFallback className={cn("text-white font-bold", selectedChat.is_group ? "bg-indigo-500" : "bg-emerald-500")}>
+                                        {selectedChat.is_group ? <Users className="w-5 h-5" /> : <User className="w-5 h-5" />}
                                     </AvatarFallback>
                                 </Avatar>
-                                <div className="cursor-pointer">
-                                    <h2 className="text-[16px] font-medium text-[#111b21] dark:text-[#e9edef] leading-tight">
+                                <div>
+                                    <h2 className="text-[15px] font-bold text-foreground leading-tight tracking-tight">
                                         {selectedChat.customer_name}
                                     </h2>
-                                    <p className="text-[12px] text-[#667781] dark:text-[#8696a0]">
-                                        {selectedChat.external_id}
-                                    </p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="text-[10px] text-muted-foreground font-bold font-mono tracking-tighter">
+                                            {selectedChat.external_id}
+                                        </span>
+                                        {selectedChat.is_group && (
+                                            <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-500 border-none">Grupo</Badge>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-4 text-[#54656f] dark:text-[#aebac1]">
-                                <Search className="w-5 h-5 cursor-pointer" />
-                                <MoreVertical className="w-5 h-5 cursor-pointer" />
+                            <div className="flex items-center gap-2">
+                                {instance?.bot_enabled && (
+                                    <Badge variant="outline" className="mr-4 border-amber-500/30 text-amber-500 bg-amber-500/5 px-3 py-1 font-black text-[9px] uppercase tracking-widest gap-2">
+                                        <Zap className="w-3 h-3 fill-amber-500" /> IA Asistiendo
+                                    </Badge>
+                                )}
+                                <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-primary">
+                                    <Search className="w-5 h-5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground">
+                                    <MoreVertical className="w-5 h-5" />
+                                </Button>
                             </div>
                         </div>
 
-                        {/* Background Pattern Overlay (Optional, but gives the WA feel) */}
-                        <div className="absolute inset-0 opacity-[0.06] dark:opacity-[0.4] pointer-events-none bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded51.png')] bg-repeat" />
+                        {/* Background Pattern Overlay */}
+                        <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.2] pointer-events-none bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded51.png')] bg-repeat" />
 
                         {/* Messages Area */}
-                        <ScrollArea className="flex-1 p-4 lg:px-16" ref={scrollRef}>
-                           <div className="flex flex-col gap-1.5 relative z-10">
+                        <ScrollArea className="flex-1 p-6 lg:px-24" ref={scrollRef}>
+                           <div className="flex flex-col gap-2 relative z-10">
                               {loadingMessages ? (
-                                  <div className="flex justify-center py-20">
-                                      <div className="w-10 h-10 border-4 border-[#00a884] border-t-transparent rounded-full animate-spin" />
+                                  <div className="flex flex-col items-center justify-center py-32 space-y-4">
+                                      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Cargando historial seguro...</p>
+                                  </div>
+                              ) : messages.length === 0 ? (
+                                  <div className="flex flex-col items-center justify-center py-32 opacity-30 select-none">
+                                      <MessageSquare className="w-16 h-16 mb-4" />
+                                      <p className="text-sm font-bold uppercase tracking-widest">Inicia la conversación</p>
                                   </div>
                               ) : (
                                   messages.map((msg, i) => {
@@ -349,37 +470,31 @@ const WhatsAppWeb = () => {
                                           <div 
                                             key={msg.id} 
                                             className={cn(
-                                                "flex flex-col max-w-[85%] lg:max-w-[65%]", 
+                                                "flex flex-col max-w-[85%] lg:max-w-[70%]", 
                                                 msg.from_me ? "self-end" : "self-start",
-                                                isFirstFromSender ? "mt-2" : "mt-0"
+                                                isFirstFromSender ? "mt-4" : "mt-0"
                                             )}
                                           >
                                               <div className={cn(
-                                                  "px-2.5 py-1.5 rounded-lg text-[14.2px] shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] relative leading-normal",
+                                                  "px-3.5 py-2 rounded-2xl text-[14px] shadow-sm relative leading-relaxed group/msg transition-all",
                                                   msg.from_me 
-                                                    ? "bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-[#e9edef] rounded-tr-none" 
-                                                    : "bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef] rounded-tl-none"
+                                                    ? "bg-primary text-white rounded-tr-none" 
+                                                    : "bg-white dark:bg-[#202c33] text-foreground rounded-tl-none border border-border/5"
                                               )}>
-                                                  {/* Bubble Tail */}
-                                                  {isFirstFromSender && (
-                                                      <div className={cn(
-                                                          "absolute top-0 w-3 h-3",
-                                                          msg.from_me 
-                                                            ? "-right-2 bg-[#d9fdd3] dark:bg-[#005c4b] [clip-path:polygon(0_0,0_100%,100%_0)]" 
-                                                            : "-left-2 bg-white dark:bg-[#202c33] [clip-path:polygon(100%_0,100%_100%,0_0)]"
-                                                      )} />
+                                                  {!msg.from_me && selectedChat.is_group && isFirstFromSender && (
+                                                      <p className="text-[10px] font-black text-indigo-500 mb-1 uppercase tracking-tight">{msg.sender_name}</p>
                                                   )}
 
-                                                  <div className="pr-12">
+                                                  <div className="pr-10 whitespace-pre-wrap break-words">
                                                       {msg.content}
                                                   </div>
                                                   
-                                                  <div className="absolute bottom-1 right-1.5 flex items-center gap-1">
-                                                      <span className="text-[11px] text-[#667781] dark:text-[#8696a0]">
+                                                  <div className="flex items-center justify-end gap-1.5 mt-1 opacity-60">
+                                                      <span className="text-[9px] font-bold uppercase tracking-tighter">
                                                           {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                       </span>
                                                       {msg.from_me && (
-                                                          <CheckCheck className="w-4 h-4 text-[#53bdeb]" />
+                                                          <CheckCheck className="w-3.5 h-3.5" />
                                                       )}
                                                   </div>
                                               </div>
@@ -391,61 +506,73 @@ const WhatsAppWeb = () => {
                         </ScrollArea>
 
                         {/* Input Area */}
-                        <div className="px-4 py-2 bg-[#f0f2f5] dark:bg-[#202c33] flex items-center gap-2 z-10">
-                           <div className="flex items-center text-[#54656f] dark:text-[#aebac1]">
-                               <Button variant="ghost" size="icon" className="rounded-full">
+                        <div className="px-6 py-4 bg-white dark:bg-[#202c33] flex items-center gap-4 z-10 border-t border-border/5">
+                           <div className="flex items-center text-muted-foreground gap-1">
+                               <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/5 hover:text-primary transition-colors">
                                   <Smile className="w-6 h-6" />
                                </Button>
-                               <Button variant="ghost" size="icon" className="rounded-full">
+                               <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/5 hover:text-primary transition-colors">
                                   <Plus className="w-6 h-6" />
                                </Button>
                            </div>
                            
-                           <form onSubmit={sendMessage} className="flex-1 flex items-center gap-2">
-                               <Input 
-                                 value={messageInput}
-                                 onChange={(e) => setMessageInput(e.target.value)}
-                                 placeholder="Escribe un mensaje aquí" 
-                                 className="h-11 bg-white dark:bg-[#2a3942] border-none rounded-lg text-sm focus-visible:ring-0 text-[#111b21] dark:text-[#e9edef] placeholder:text-[#667781] dark:placeholder:text-[#8696a0]"
-                               />
+                           <form onSubmit={sendMessage} className="flex-1 flex items-center gap-3">
+                               <div className="flex-1 relative">
+                                   <Input 
+                                     value={messageInput}
+                                     onChange={(e) => setMessageInput(e.target.value)}
+                                     placeholder="Escribe un mensaje corporativo..." 
+                                     className="h-12 bg-secondary/40 border-none rounded-2xl text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary/20 text-foreground placeholder:text-muted-foreground/30 px-6"
+                                   />
+                               </div>
                                <Button 
                                  type="submit" 
-                                 variant="ghost"
                                  disabled={!messageInput.trim()}
-                                 className="rounded-full text-[#54656f] dark:text-[#aebac1]"
+                                 className={cn(
+                                     "rounded-2xl w-12 h-12 flex items-center justify-center transition-all shadow-md",
+                                     messageInput.trim() ? "bg-primary text-white shadow-primary/20 scale-100" : "bg-secondary text-muted-foreground scale-95"
+                                 )}
                                >
                                   {messageInput.trim() ? (
-                                      <Send className="w-6 h-6 text-[#00a884]" />
+                                      <Send className="w-5 h-5" />
                                   ) : (
-                                      <Mic className="w-6 h-6" />
+                                      <Mic className="w-5 h-5" />
                                   )}
                                </Button>
                            </form>
                         </div>
                     </>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center p-10 bg-[#f8f9fa] dark:bg-[#222e35]">
-                        <div className="max-w-[560px] text-center flex flex-col items-center">
-                            <div className="w-full max-w-[400px] mb-8 opacity-80 dark:opacity-100">
-                                <img 
-                                    src="https://static.whatsapp.net/rsrc.php/v3/y6/r/wa669ae5y9Z.png" 
-                                    alt="WhatsApp" 
-                                    className="w-full h-auto mx-auto"
-                                />
+                    <div className="flex-1 flex flex-col items-center justify-center p-12 bg-secondary/10 relative overflow-hidden">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+                        
+                        <div className="max-w-[500px] text-center flex flex-col items-center relative z-10">
+                            <div className="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center shadow-xl mb-10 group hover:scale-105 transition-all duration-500">
+                                <Bot className="w-12 h-12 text-primary group-hover:rotate-12 transition-transform" />
                             </div>
-                            <h1 className="text-[32px] font-light text-[#41525d] dark:text-[#e9edef] mb-4">
-                                WhatsApp Web
+                            <h1 className="text-3xl font-black text-foreground tracking-tighter uppercase mb-4">
+                                Centro de Mensajería <span className="text-primary">Dealerbot</span>
                             </h1>
-                            <p className="text-[14px] text-[#667781] dark:text-[#8696a0] leading-relaxed mb-10">
-                                Envía y recibe mensajes sin necesidad de tener tu teléfono conectado.<br/>
-                                Usa WhatsApp en hasta 4 dispositivos vinculados y 1 teléfono a la vez.
+                            <p className="text-sm text-muted-foreground font-medium leading-relaxed mb-12">
+                                Gestiona tus conversaciones de WhatsApp y Messenger con el respaldo de IA.<br/>
+                                Todos los mensajes se registran de forma segura para auditoría y entrenamiento.
                             </p>
-                            <div className="mt-auto flex items-center gap-2 text-[14px] text-[#8696a0]">
-                                <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" /> Cifrado de extremo a extremo</span>
+                            
+                            <div className="grid grid-cols-2 gap-4 w-full">
+                                <div className="p-6 rounded-3xl bg-white/50 border border-border/5 text-left">
+                                    <Shield className="w-5 h-5 text-emerald-500 mb-3" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground">Registro Seguro</h4>
+                                    <p className="text-[9px] text-muted-foreground font-bold mt-1 uppercase">Auditoría 24/7 de flujo</p>
+                                </div>
+                                <div className="p-6 rounded-3xl bg-white/50 border border-border/5 text-left">
+                                    <Power className="w-5 h-5 text-primary mb-3" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground">Estado Motor</h4>
+                                    <p className="text-[9px] text-muted-foreground font-bold mt-1 uppercase">
+                                        {instance?.status === 'connected' ? 'ONLINE - ACTIVO' : 'OFFLINE - ESPERA'}
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                        {/* Decorative bottom line like WA */}
-                        <div className="absolute bottom-10 h-1.5 w-[300px] bg-[#00a884] rounded-full opacity-20" />
                     </div>
                 )}
             </div>
