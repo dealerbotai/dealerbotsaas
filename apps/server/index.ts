@@ -1,9 +1,9 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { Worker } from 'worker_threads';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -25,25 +25,25 @@ const io = new Server(httpServer, {
 });
 
 const PORT = process.env.PORT || 3001;
-const workers = new Map();
+const workers = new Map<string, Worker>();
 
 // Supabase client
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY!
 );
 
 // Middleware
 app.use(cors());
 
 // Webhook endpoint MUST use express.raw for signature verification before JSON processing
-app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
+app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), async (req: express.Request, res: express.Response) => {
+  const sig = req.headers['stripe-signature'] as string;
   
   try {
     const event = await stripeService.handleWebhook(sig, req.body);
     res.json({received: true, type: event.type});
-  } catch (err) {
+  } catch (err: any) {
     res.status(400).send(`Webhook Error: ${err.message}`);
   }
 });
@@ -51,9 +51,9 @@ app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), async 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Plan Usage Validation Middleware (AHORA DECLARADO ANTES DE SER USADO)
-const checkPlanLimits = async (req, res, next) => {
-  const workspaceId = req.headers['x-workspace-id'];
+// Plan Usage Validation Middleware
+const checkPlanLimits = async (req: Request, res: Response, next: NextFunction) => {
+  const workspaceId = req.headers['x-workspace-id'] as string;
   if (!workspaceId) return next();
 
   try {
@@ -64,7 +64,7 @@ const checkPlanLimits = async (req, res, next) => {
       .single();
 
     if (workspace?.plan === 'free') {
-      const resourceType = req.path.split('/')[2]; 
+      const resourceType = req.path.split('/')[2]; // e.g., 'instances', 'agents', 'stores'
       
       const { count } = await supabase
         .from(resourceType)
@@ -85,7 +85,7 @@ const checkPlanLimits = async (req, res, next) => {
 };
 
 // Import products endpoint with plan limit check
-app.post('/api/import-products', checkPlanLimits, async (req, res) => {
+app.post('/api/import-products', checkPlanLimits, async (req: Request, res: Response) => {
   try {
     const { products, storeId } = req.body;
     
@@ -156,7 +156,7 @@ app.post('/api/import-products', checkPlanLimits, async (req, res) => {
         }
         
         importedCount++;
-      } catch (error) {
+      } catch (error: any) {
         logger.error('DATABASE', `Error importando producto ${product.name}: ${error.message}`);
         errors.push({ name: product.name, error: error.message });
       }
@@ -170,7 +170,7 @@ app.post('/api/import-products', checkPlanLimits, async (req, res) => {
       errorDetails: errors
     });
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('DATABASE', `Error crítico en importación: ${error.message}`, error);
     res.status(500).json({ 
       error: 'Error interno del servidor',
@@ -180,33 +180,33 @@ app.post('/api/import-products', checkPlanLimits, async (req, res) => {
 });
 
 // Billing Endpoints
-app.post('/api/billing/create-checkout-session', async (req, res) => {
+app.post('/api/billing/create-checkout-session', async (req: Request, res: Response) => {
   try {
     const { workspaceId, priceId, successUrl, cancelUrl } = req.body;
     const session = await stripeService.createCheckoutSession(workspaceId, priceId, successUrl, cancelUrl);
     res.json({ id: session.id, url: session.url });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.post('/api/billing/create-portal-session', async (req, res) => {
+app.post('/api/billing/create-portal-session', async (req: Request, res: Response) => {
   try {
     const { workspaceId, returnUrl } = req.body;
     const session = await stripeService.createPortalSession(workspaceId, returnUrl);
     res.json({ url: session.url });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString(), activeWorkers: workers.size });
 });
 
 // Function to start a worker
-async function startInstanceWorker(instanceId, name) {
+async function startInstanceWorker(instanceId: string, name: string) {
     if (workers.has(instanceId)) {
         logger.warn('WORKER', `La instancia ${name} (${instanceId}) ya tiene un worker activo.`);
         return;
@@ -227,9 +227,11 @@ async function startInstanceWorker(instanceId, name) {
         const platform = instance.platform || 'whatsapp';
         logger.info('WORKER', `Iniciando nuevo nodo para: ${name} en plataforma: ${platform}`);
 
-        const workerFile = platform === 'messenger' ? 'messenger-worker.js' : 'baileys-worker.js';
+        const workerFile = platform === 'messenger' ? 'messenger-worker.ts' : 'baileys-worker.ts';
 
         const worker = new Worker(path.join(__dirname, workerFile), {
+            // Soporte para cargar modulos TS dinamicamente si usamos tsx o ts-node workers, 
+            // sino debemos usar .js despues de transpilar.
             execArgv: process.env.NODE_ENV === 'development' ? ['--import', 'tsx'] : [],
             workerData: {
                 id: instanceId,
@@ -241,7 +243,7 @@ async function startInstanceWorker(instanceId, name) {
             }
         });
 
-        worker.on('message', (msg) => {
+        worker.on('message', (msg: any) => {
             io.to(`instance:${instanceId}`).emit(msg.type, { ...msg, instanceId });
 
             if (msg.type === 'message' || msg.type === 'bot-reply') {
@@ -281,25 +283,25 @@ async function startInstanceWorker(instanceId, name) {
             }
         });
 
-        worker.on('error', (err) => {
+        worker.on('error', (err: Error) => {
             logger.error('WORKER', `Fallo crítico en worker ${name}: ${err.message}`, err);
             io.to(`instance:${instanceId}`).emit('instance-status-update', { instanceId, status: 'disconnected', error: err.message });
         });
 
-        worker.on('exit', (code) => {
+        worker.on('exit', (code: number) => {
             logger.info('WORKER', `Worker de ${name} finalizado (Código: ${code})`);
             workers.delete(instanceId);
             supabase.from('instances').update({ status: 'disconnected' }).eq('id', instanceId).then();
         });
 
         workers.set(instanceId, worker);
-    } catch (error) {
+    } catch (error: any) {
         logger.error('WORKER', `Error al iniciar worker: ${error.message}`);
     }
 }
 
 // FB Messenger Webhook
-app.get('/api/webhook/messenger', (req, res) => {
+app.get('/api/webhook/messenger', (req: Request, res: Response) => {
     const VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || 'salesbot_secret_token';
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
@@ -317,11 +319,11 @@ app.get('/api/webhook/messenger', (req, res) => {
     }
 });
 
-app.post('/api/webhook/messenger', async (req, res) => {
+app.post('/api/webhook/messenger', async (req: Request, res: Response) => {
     const body = req.body;
     
     if (body.object === 'page') {
-        body.entry.forEach(async (entry) => {
+        body.entry.forEach(async (entry: any) => {
             const pageId = entry.id; 
             const webhookEvent = entry.messaging[0];
             
@@ -359,7 +361,7 @@ app.post('/api/webhook/messenger', async (req, res) => {
 });
 
 // Socket.io logic
-io.on('connection', (socket) => {
+io.on('connection', (socket: Socket) => {
     logger.info('SOCKET', `Nuevo cliente conectado: ${socket.id}`);
 
     socket.on('register-instance', ({ instanceId }) => {
@@ -426,13 +428,13 @@ const initActiveInstances = async () => {
         
         if (instances && instances.length > 0) {
             logger.info('INIT', `Auto-iniciando ${instances.length} instancias activas...`);
-            instances.forEach((inst) => {
+            instances.forEach((inst: any) => {
                 startInstanceWorker(inst.id, inst.name);
             });
         } else {
             logger.info('INIT', 'No hay instancias activas para auto-iniciar.');
         }
-    } catch (e) {
+    } catch (e: any) {
         logger.error('INIT', `Error en auto-inicio: ${e.message}`);
     }
 };

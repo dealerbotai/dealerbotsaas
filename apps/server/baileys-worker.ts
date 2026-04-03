@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import WhatsAppClient from './services/whatsapp/client.js';
 import { getMessageContext } from './middleware/context-router.js';
-import { groqChat } from './services/ai/groq-client.js';
+import { getAIResponseFromRouter } from './services/ai/ai-router.js'; // Assumed import for AI response
 import { logger } from './utils/logger.js';
 
 // Comandos
@@ -17,6 +17,18 @@ import { handleCierre } from './commands/cierre.js';
 import { handleCancelar } from './commands/cancelar.js';
 import { handleVenta } from './commands/venta.js';
 import { handleVincular } from './commands/vincular.js';
+
+/**
+ * WhatsApp Connection Events interfaces
+ */
+export type WPConnectionEventType = 'qr' | 'connecting' | 'open' | 'close';
+
+export interface WPEventData {
+    qr?: string;
+    reason?: string;
+    statusCode?: number;
+    [key: string]: any;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -28,15 +40,15 @@ dotenv.config({ path: envPath });
 const { id, name, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = workerData;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-let client = null;
+let client: any = null;
 
 async function startWorker() {
     logger.worker(id, `Iniciando motor para ${name}...`);
     
-    client = new WhatsAppClient(supabase, {
+    client = new (WhatsAppClient as any)(supabase, {
         instanceId: id,
         name: name,
-        onEvent: async (type, data) => {
+        onEvent: async (type: WPConnectionEventType, data: WPEventData) => {
             // ... (keep switches)
         }
     });
@@ -51,12 +63,12 @@ async function startWorker() {
         }
         
         await client.connect(shouldReset);
-    } catch (err) {
+    } catch (err: any) {
         logger.worker(id, `Error conectando motor: ${err.message}`, 'error');
         throw err;
     }
 
-    client.sock.ev.on('messages.upsert', async (upsert) => {
+    client.sock.ev.on('messages.upsert', async (upsert: any) => {
         if (upsert.type !== 'notify') return;
         
         for (const msg of upsert.messages) {
@@ -95,7 +107,7 @@ async function startWorker() {
                         let response = "";
 
                         logger.worker(id, `Comando de control detectado: .${command}`);
-                        const aiService = (u, s) => getAIResponseFromRouter(supabase, id, u, s);
+                        const aiService = (u: any, s: any) => getAIResponseFromRouter(supabase, id, u, s);
 
                         if (command === 'inicio') {
                             response = await handleInicio(supabase, context, aiService);
@@ -143,7 +155,7 @@ async function startWorker() {
                     });
 
                     // Notificar a la UI
-                    parentPort.postMessage({
+                    parentPort?.postMessage({
                         type: 'message',
                         message: { from: jid, body, pushname: pushName, chat_id: chat.id, to: id }
                     });
@@ -173,7 +185,7 @@ async function startWorker() {
                         });
                     }
 
-                    parentPort.postMessage({
+                    parentPort?.postMessage({
                         type: 'bot-reply',
                         reply: aiReply,
                         chat_id: chat?.id,
@@ -181,13 +193,13 @@ async function startWorker() {
                     });
                 }
 
-            } catch (e) {
+            } catch (e: any) {
                 logger.worker(id, `Error procesando mensaje de ${msg.key.remoteJid}: ${e.message}`, 'error');
             }
         }
     });
 
-    parentPort.on('message', async (cmd) => {
+    parentPort?.on('message', async (cmd: any) => {
         try {
             if (cmd.type === 'send-message' && cmd.to && cmd.text) {
                 await client.sendMessage(cmd.to, cmd.text);
@@ -199,23 +211,23 @@ async function startWorker() {
                     const sock = client?.sock;
                     if (!sock || !sock.ws || sock.ws.readyState !== 1) {
                         logger.worker(id, `Solicitud de grupos fallida: Conexión no activa (ReadyState: ${sock?.ws?.readyState || 'N/A'})`, 'warn');
-                        parentPort.postMessage({ type: 'groups-list', groups: [] });
+                        parentPort?.postMessage({ type: 'groups-list', groups: [] });
                         return;
                     }
                     logger.worker(id, `Sincronizando lista de grupos...`);
                     const groups = await sock.groupFetchAllParticipating();
-                    const groupList = Object.values(groups).map(g => ({
+                    const groupList = Object.values(groups).map((g: any) => ({
                         id: g.id,
                         subject: g.subject
                     }));
                     logger.worker(id, `Grupos sincronizados: ${groupList.length}`, 'success');
-                    parentPort.postMessage({ type: 'groups-list', groups: groupList });
-                } catch (err) {
+                    parentPort?.postMessage({ type: 'groups-list', groups: groupList });
+                } catch (err: any) {
                     logger.worker(id, `Error sincronizando grupos: ${err.message}`, 'error');
-                    parentPort.postMessage({ type: 'groups-list', groups: [] });
+                    parentPort?.postMessage({ type: 'groups-list', groups: [] });
                 }
             }
-        } catch (e) {
+        } catch (e: any) {
             logger.worker(id, `Error en comando worker: ${e.message}`, 'error');
         }
     });
@@ -224,7 +236,7 @@ async function startWorker() {
 /**
  * Función auxiliar para obtener respuesta de la IA para clientes
  */
-async function getAIResponse(prompt, instanceId, remoteJid) {
+async function getAIResponse(prompt: string, instanceId: string, remoteJid: string) {
     const systemPrompt = "Eres un asistente de ventas atento."; // Simplificado
     return await getAIResponseFromRouter(supabase, instanceId, prompt, systemPrompt);
 }
