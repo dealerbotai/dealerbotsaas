@@ -9,6 +9,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { logger } from './utils/logger.js';
 import { stripeService } from './services/stripe.js';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './docs/swagger.js';
 
 dotenv.config();
 
@@ -36,6 +38,28 @@ const supabase = createClient(
 // Middleware
 app.use(cors());
 
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+/**
+ * @swagger
+ * /api/webhooks/stripe:
+ *   post:
+ *     summary: Stripe Webhook
+ *     description: Recibe eventos en tiempo real desde Stripe (pagos, suscripciones, etc.).
+ *     tags: [Billing]
+ *     parameters:
+ *       - in: header
+ *         name: stripe-signature
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Evento procesado correctamente
+ *       400:
+ *         description: Error en la firma o procesamiento del webhook
+ */
 // Webhook endpoint MUST use express.raw for signature verification before JSON processing
 app.post('/api/webhooks/stripe', express.raw({type: 'application/json'}), async (req, res) => {
   const sig = req.headers['stripe-signature'];
@@ -84,6 +108,46 @@ const checkPlanLimits = async (req, res, next) => {
   }
 };
 
+/**
+ * @swagger
+ * /api/import-products:
+ *   post:
+ *     summary: Importar Productos
+ *     description: Permite sincronizar un catálogo de productos hacia el espacio de trabajo activo. Valida los límites del plan actual.
+ *     tags: [Products]
+ *     security:
+ *       - WorkspaceIdAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               storeId:
+ *                 type: string
+ *                 description: ID de la tienda destino
+ *               products:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                     price:
+ *                       type: number
+ *                     stock:
+ *                       type: number
+ *     responses:
+ *       200:
+ *         description: Productos importados correctamente
+ *       400:
+ *         description: Datos inválidos o faltan productos
+ *       403:
+ *         description: Límite del plan excedido
+ *       500:
+ *         description: Error interno del servidor
+ */
 // Import products endpoint with plan limit check
 app.post('/api/import-products', checkPlanLimits, async (req, res) => {
   try {
@@ -190,6 +254,30 @@ app.post('/api/billing/create-checkout-session', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/billing/create-portal-session:
+ *   post:
+ *     summary: Crear Portal de Cliente
+ *     description: Genera una URL segura para que el cliente gestione su suscripción en Stripe.
+ *     tags: [Billing]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               workspaceId:
+ *                 type: string
+ *               returnUrl:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Devuelve la URL del portal de cliente
+ *       500:
+ *         description: Error al comunicarse con Stripe
+ */
 app.post('/api/billing/create-portal-session', async (req, res) => {
   try {
     const { workspaceId, returnUrl } = req.body;
@@ -317,6 +405,32 @@ app.get('/api/webhook/messenger', (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/webhook/messenger:
+ *   post:
+ *     summary: Recibir Eventos de Messenger
+ *     description: Endpoint que recibe los mensajes y eventos de las páginas de Facebook conectadas.
+ *     tags: [Webhooks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               object:
+ *                 type: string
+ *               entry:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Evento recibido exitosamente (EVENT_RECEIVED)
+ *       404:
+ *         description: Formato de evento no soportado
+ */
 app.post('/api/webhook/messenger', async (req, res) => {
     const body = req.body;
     

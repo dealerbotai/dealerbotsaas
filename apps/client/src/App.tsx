@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import Settings from "./pages/Settings";
 import InstanceDetails from "./pages/InstanceDetails";
 import InstanceWizard from "./pages/InstanceWizard";
@@ -30,6 +31,7 @@ const App = () => (
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/instances" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/instances/new" element={<ProtectedRoute><InstanceWizard /></ProtectedRoute>} />

@@ -34,7 +34,10 @@ const Landing = () => {
           <a href="#pricing" className="hover:text-white transition-colors">Membresías</a>
         </div>
 
-        <button className="bg-[#fcfdfa] text-[#0a261a] px-8 py-3 rounded-full font-black text-[11px] uppercase tracking-[2px] transition-all hover:bg-[#6d8c7c] hover:text-white shadow-2xl hover:scale-105 active:scale-95">
+        <button 
+          onClick={() => window.location.href = import.meta.env.VITE_DASHBOARD_URL || 'http://localhost:5173/signup'}
+          className="bg-[#fcfdfa] text-[#0a261a] px-8 py-3 rounded-full font-black text-[11px] uppercase tracking-[2px] transition-all hover:bg-[#6d8c7c] hover:text-white shadow-2xl hover:scale-105 active:scale-95"
+        >
           Comenzar Plan Gratis
         </button>
       </nav>
@@ -183,3 +186,4 @@ const Landing = () => {
 };
 
 export default Landing;
+ default Landing;
