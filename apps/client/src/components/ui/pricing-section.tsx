@@ -24,6 +24,7 @@ const plans = [
     description: "Validación de concepto y pruebas iniciales.",
     price: 0,
     yearlyPrice: 0,
+    priceIds: null,
     buttonText: "Empezar Gratis",
     buttonVariant: "outline" as const,
     features: [
@@ -41,7 +42,10 @@ const plans = [
     description: "Potencia para negocios en crecimiento.",
     price: 125,
     yearlyPrice: 1200,
-    priceId: "price_1TI0b9Q3SP0nKpKnfjRTvwwE",
+    priceIds: {
+      monthly: "price_1TI91JLzXqCxGoctYL2mBWZF",
+      yearly: "price_1TI92rLzXqCxGoct4vQlXadr"
+    },
     buttonText: "Elegir Starter",
     buttonVariant: "default" as const,
     popular: true,
@@ -62,7 +66,10 @@ const plans = [
     description: "Infraestructura crítica empresarial.",
     price: 217,
     yearlyPrice: 2083,
-    priceId: "price_1TI0bCQ3SP0nKpKnBulfOYKA",
+    priceIds: {
+      monthly: "price_1TI94HLzXqCxGoctSSE8eVYD",
+      yearly: "price_1TI9BQLzXqCxGoctkwOxO5HZ"
+    },
     buttonText: "Elegir Pro",
     buttonVariant: "black" as const,
     features: [
@@ -140,11 +147,12 @@ export default function PricingSection() {
 
     setLoadingPlan(plan.name);
     try {
+        const selectedPriceId = isYearly && plan.priceIds ? plan.priceIds.yearly : (plan.priceIds ? plan.priceIds.monthly : null);
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/billing/create-checkout-session`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                priceId: plan.priceId,
+                priceId: selectedPriceId,
                 successUrl: window.location.origin + '/dashboard?session_id={CHECKOUT_SESSION_ID}',
                 cancelUrl: window.location.origin + '/billing',
                 workspaceId: 'default' // This should be replaced with the actual workspace ID in a real scenario

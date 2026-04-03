@@ -33,6 +33,7 @@ export const Logo = ({ className, size = 'md', hideText = false }: LogoProps) =>
           <img 
             src="/logodealer.png" 
             alt="Dealerbot Logo" 
+            loading="lazy"
             className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
           />
         </div>

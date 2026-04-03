@@ -4,18 +4,21 @@ import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Solo inicializar si la clave existe para evitar que la aplicación se caiga en arranque
+const stripe = process.env.STRIPE_SECRET_KEY 
+  ? new Stripe(process.env.STRIPE_SECRET_KEY) 
+  : null;
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const stripeService = {
   /**
    * Create a checkout session for a specific price and workspace
    */
   async createCheckoutSession(workspaceId, priceId, successUrl, cancelUrl) {
+    if (!stripe) throw new Error('Stripe no está configurado (STRIPE_SECRET_KEY faltante). No se pueden generar sesiones.');
     try {
       // Get workspace details to check for existing customer_id
       const { data: workspace, error } = await supabase
@@ -59,6 +62,7 @@ export const stripeService = {
    * Create a customer portal session for subscription management
    */
   async createPortalSession(workspaceId, returnUrl) {
+    if (!stripe) throw new Error('Stripe no está configurado (STRIPE_SECRET_KEY faltante).');
     try {
       const { data: workspace, error } = await supabase
         .from('workspaces')
@@ -86,6 +90,7 @@ export const stripeService = {
    * Handle Stripe Webhooks
    */
   async handleWebhook(signature, rawBody) {
+    if (!stripe) throw new Error('Stripe no está configurado, Webhook fallará.');
     let event;
 
     try {
@@ -120,6 +125,7 @@ export const stripeService = {
   },
 
   async handleCheckoutSessionCompleted(session) {
+    if (!stripe) return;
     const { workspaceId } = session.metadata;
     const customerId = session.customer;
     const subscriptionId = session.subscription;
@@ -129,10 +135,15 @@ export const stripeService = {
     const priceId = subscription.items.data[0].price.id;
     
     // Map Price ID to Plan Level
-    // Price IDs: Starter=price_1TI0b9Q3SP0nKpKnfjRTvwwE, Pro=price_1TI0bCQ3SP0nKpKnBulfOYKA
+    // Real Stripe Price IDs from MCP:
+    // Starter (Month): price_1TI91JLzXqCxGoctYL2mBWZF, Starter (Year): price_1TI92rLzXqCxGoct4vQlXadr
+    // Pro (Month): price_1TI94HLzXqCxGoctSSE8eVYD, Pro (Year): price_1TI9BQLzXqCxGoctkwOxO5HZ
+    const starterPrices = ['price_1TI91JLzXqCxGoctYL2mBWZF', 'price_1TI92rLzXqCxGoct4vQlXadr'];
+    const proPrices = ['price_1TI94HLzXqCxGoctSSE8eVYD', 'price_1TI9BQLzXqCxGoctkwOxO5HZ'];
+
     let plan = 'free';
-    if (priceId === 'price_1TI0b9Q3SP0nKpKnfjRTvwwE') plan = 'starter';
-    if (priceId === 'price_1TI0bCQ3SP0nKpKnBulfOYKA') plan = 'pro';
+    if (starterPrices.includes(priceId)) plan = 'starter';
+    if (proPrices.includes(priceId)) plan = 'pro';
 
     await supabase
       .from('workspaces')
@@ -151,9 +162,13 @@ export const stripeService = {
     
     const priceId = subscription.items.data[0].price.id;
     let plan = 'free';
+    
+    const starterPrices = ['price_1TI91JLzXqCxGoctYL2mBWZF', 'price_1TI92rLzXqCxGoct4vQlXadr'];
+    const proPrices = ['price_1TI94HLzXqCxGoctSSE8eVYD', 'price_1TI9BQLzXqCxGoctkwOxO5HZ'];
+
     if (status === 'active') {
-      if (priceId === 'price_1TI0b9Q3SP0nKpKnfjRTvwwE') plan = 'starter';
-      if (priceId === 'price_1TI0bCQ3SP0nKpKnBulfOYKA') plan = 'pro';
+      if (starterPrices.includes(priceId)) plan = 'starter';
+      if (proPrices.includes(priceId)) plan = 'pro';
     }
 
     await supabase

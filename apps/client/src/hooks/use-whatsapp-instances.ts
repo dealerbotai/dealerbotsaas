@@ -249,12 +249,19 @@ export const useWhatsApp = () => {
     }, [fetchWorkspace]);
 
     useEffect(() => {
-        const handleStatusUpdate = (data: { instanceId: string; status: WhatsAppInstance['status']; error?: string }) => {
-            setInstances(prev => prev.map(inst => 
-                inst.id === data.instanceId ? { ...inst, status: data.status } : inst
-            ));
-            if (data.error) toast.error(`Error en instancia: ${data.error}`);
-        };
+        // Suscribirse a cambios en la tabla 'instances' vía Supabase Realtime
+        const channel = supabase.channel('public:instances')
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'instances' },
+                (payload) => {
+                    const newInst = payload.new as WhatsAppInstance;
+                    setInstances(prev => prev.map(inst => 
+                        inst.id === newInst.id ? { ...inst, status: newInst.status, bot_enabled: newInst.bot_enabled } : inst
+                    ));
+                }
+            )
+            .subscribe();
 
         const handleQR = (data: { instanceId: string; qr: string }) => {
             setInstances(prev => prev.map(inst => 
@@ -269,12 +276,11 @@ export const useWhatsApp = () => {
             toast.success('WhatsApp conectado correctamente.');
         };
 
-        socket.on('instance-status-update', handleStatusUpdate);
         socket.on('qr', handleQR);
         socket.on('ready', handleReady);
 
         return () => {
-            socket.off('instance-status-update', handleStatusUpdate);
+            supabase.removeChannel(channel);
             socket.off('qr', handleQR);
             socket.off('ready', handleReady);
         };

@@ -207,3 +207,9 @@ gha-creds-*.json
 AI_RULES.md
 Context.md
 GEMINI.md
+
+# Baileys Auth
+auth_info_baileys/
+**/auth_info_baileys/
+creds.json
+*.local.json
