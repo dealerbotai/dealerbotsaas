@@ -129,10 +129,15 @@ export const stripeService = {
     const priceId = subscription.items.data[0].price.id;
     
     // Map Price ID to Plan Level
-    // Price IDs: Starter=price_1TI0b9Q3SP0nKpKnfjRTvwwE, Pro=price_1TI0bCQ3SP0nKpKnBulfOYKA
+    // Real Stripe Price IDs from MCP:
+    // Starter (Month): price_1TI91JLzXqCxGoctYL2mBWZF, Starter (Year): price_1TI92rLzXqCxGoct4vQlXadr
+    // Pro (Month): price_1TI94HLzXqCxGoctSSE8eVYD, Pro (Year): price_1TI9BQLzXqCxGoctkwOxO5HZ
+    const starterPrices = ['price_1TI91JLzXqCxGoctYL2mBWZF', 'price_1TI92rLzXqCxGoct4vQlXadr'];
+    const proPrices = ['price_1TI94HLzXqCxGoctSSE8eVYD', 'price_1TI9BQLzXqCxGoctkwOxO5HZ'];
+
     let plan = 'free';
-    if (priceId === 'price_1TI0b9Q3SP0nKpKnfjRTvwwE') plan = 'starter';
-    if (priceId === 'price_1TI0bCQ3SP0nKpKnBulfOYKA') plan = 'pro';
+    if (starterPrices.includes(priceId)) plan = 'starter';
+    if (proPrices.includes(priceId)) plan = 'pro';
 
     await supabase
       .from('workspaces')
@@ -151,9 +156,13 @@ export const stripeService = {
     
     const priceId = subscription.items.data[0].price.id;
     let plan = 'free';
+    
+    const starterPrices = ['price_1TI91JLzXqCxGoctYL2mBWZF', 'price_1TI92rLzXqCxGoct4vQlXadr'];
+    const proPrices = ['price_1TI94HLzXqCxGoctSSE8eVYD', 'price_1TI9BQLzXqCxGoctkwOxO5HZ'];
+
     if (status === 'active') {
-      if (priceId === 'price_1TI0b9Q3SP0nKpKnfjRTvwwE') plan = 'starter';
-      if (priceId === 'price_1TI0bCQ3SP0nKpKnBulfOYKA') plan = 'pro';
+      if (starterPrices.includes(priceId)) plan = 'starter';
+      if (proPrices.includes(priceId)) plan = 'pro';
     }
 
     await supabase
