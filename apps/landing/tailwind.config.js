@@ -6,8 +6,16 @@ export default {
   ],
   theme: {
     extend: {
+      colors: {
+        'forest-green': '#0a261a',
+        'sage-green': '#6d8c7c',
+        'cream-white': '#fcfdfa',
+        'deep-emerald': '#06402b',
+        'muted-sage': '#8fa69a',
+      },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
+        outfit: ['Outfit', 'sans-serif'],
       },
     },
   },
