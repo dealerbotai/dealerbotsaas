@@ -54,7 +54,7 @@ const Signup = () => {
             if (error) throw error;
             toast.success('Cuenta creada exitosamente. Bienvenido a Dealerbot.');
             // El trigger de base de datos creará el workspace automáticamente
-            navigate('/');
+            navigate('/dashboard');
         } catch (err: any) {
             toast.error('Error: ' + (err.message || 'No se pudo crear la cuenta'));
         } finally {
